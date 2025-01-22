@@ -8,7 +8,7 @@ import { useContext, useEffect, useId, useRef, useState } from 'react';
 
 const ansiToHtml = new AnsiToHtml();
 
-const tabs = ['code', 'console', 'result'] as const;
+const tabs = ['result', 'console', 'code'] as const;
 
 type Tab = (typeof tabs)[number];
 
@@ -37,7 +37,7 @@ export function Result({
   logs: Message[];
   setLogs: React.Dispatch<React.SetStateAction<Message[]>>;
 }) {
-  const [tab, setTab] = useState<Tab>('code');
+  const [tab, setTab] = useState<Tab>(tabs[0]);
   const ansiError = error ? ansiToHtml.toHtml(error) : '';
   const ansiWarning = warning ? ansiToHtml.toHtml(warning) : '';
   const highlightCode = code
@@ -119,11 +119,9 @@ function ResultTab({ code }: { code: string }) {
   const rootId = useId();
 
   useEffect(() => {
-    const parent = scriptParentRef.current;
+    const scriptParent = scriptParentRef.current;
     const style = styleRef.current;
-    if (!parent || !style) return;
-
-    style.textContent = '';
+    if (!scriptParent || !style) return;
 
     if (tailwindcss) {
       tailwindcss
@@ -150,8 +148,8 @@ ReactDOM.render(
   React.createElement(App),
   document.getElementById("${rootId}")
 );`;
-    parent.innerHTML = '';
-    parent.appendChild(script);
+    scriptParent.innerHTML = '';
+    scriptParent.appendChild(script);
   }, [code, rootId, tailwindcss]);
 
   return (
