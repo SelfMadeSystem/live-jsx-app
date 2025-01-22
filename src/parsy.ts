@@ -1,7 +1,7 @@
 import { CompilerResult } from './Result';
-import { Module, parse, transform } from '@swc/wasm-web';
+import { parse, transform } from '@swc/wasm-web';
 
-const importPathMap = {
+/* const importPathMap = {
   react: 'https://cdn.skypack.dev/react',
   'react-dom': 'https://cdn.skypack.dev/react-dom',
 };
@@ -19,7 +19,7 @@ function replaceImports(module: Module) {
       node.source.raw = `"${newImportPath}"`;
     }
   }
-}
+} */
 
 export async function transformTsx(code: string): Promise<CompilerResult> {
   const result = await parse(code, {
@@ -36,9 +36,6 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
     return result;
   }
 
-  replaceImports(result);
-  console.log(result);
-
   const transformed = await transform(result, {
     jsc: {
       target: 'es2020',
@@ -48,6 +45,13 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
         decorators: true,
         dynamicImport: true,
       },
+      transform: {
+        react: {
+          pragma: '__React__.createElement',
+          pragmaFrag: '__React__.Fragment',
+          importSource: 'react',
+        }
+      }
     },
   }).catch(e => {
     // typeof e === 'string' for some reason

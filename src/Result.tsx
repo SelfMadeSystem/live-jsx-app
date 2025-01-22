@@ -140,12 +140,12 @@ function ResultTab({ code }: { code: string }) {
     const script = document.createElement('script');
     script.type = 'module';
     script.textContent = `\
-import * as React from "https://cdn.skypack.dev/react";
-import * as ReactDOM from "https://cdn.skypack.dev/react-dom";
+import * as __ReactDOM__ from "react-dom";
+import * as __React__ from "react";
 ${code}
 
-ReactDOM.render(
-  React.createElement(App),
+__ReactDOM__.render(
+  __React__.createElement(App),
   document.getElementById("${rootId}")
 );`;
     scriptParent.innerHTML = '';

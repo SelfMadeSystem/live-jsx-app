@@ -1,4 +1,5 @@
 import { CompilerResult, Result } from './Result';
+import { DEFAULT_TSX } from './consts';
 import { MonacoEditor } from './monaco/MonacoEditor';
 import { MonacoProvider } from './monaco/MonacoProvider';
 import { transformTsx } from './parsy';
@@ -19,6 +20,11 @@ export default function App() {
     async function importAndRunSwcOnMount() {
       await initSwc(swcWasm);
       setInitialized(true);
+      const newResult = await transformTsx(DEFAULT_TSX);
+      if (newResult.code !== undefined) {
+        setLogs([]);
+      }
+      setResult(newResult);
     }
     importAndRunSwcOnMount();
   }, []);
@@ -38,7 +44,12 @@ export default function App() {
     <MonacoProvider>
       <div className="flex min-h-screen w-full flex-row">
         <div className="w-1/2">
-          <MonacoEditor language="typescript" jsx onChange={handleChange} />
+          <MonacoEditor
+            value={DEFAULT_TSX}
+            language="typescript"
+            jsx
+            onChange={handleChange}
+          />
         </div>
         <div className="flex w-1/2 flex-col">
           <div className="text-center text-lg font-bold">Output:</div>
