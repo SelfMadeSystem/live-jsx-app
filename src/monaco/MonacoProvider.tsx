@@ -111,13 +111,16 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
       );
 
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        jsx: monaco.languages.typescript.JsxEmit.React,
+        jsx: monaco.languages.typescript.JsxEmit.Preserve,
         allowNonTsExtensions: true,
         moduleResolution:
           monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        esModuleInterop: true,
+        allowUmdGlobalAccess: true,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
-        typeRoots: ['node_modules/@types'],
+        typeRoots: ['types'],
+        
       });
       monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
@@ -126,19 +129,19 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
 
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         reactIndexTypings,
-        'node_modules/@types/react/index.d.ts',
+        'types/react/index.d.ts',
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         reactGlobalTypings,
-        'node_modules/@types/react/global.d.ts',
+        'file:///types/react/global.d.ts',
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         csstypeTypings,
-        'node_modules/@types/csstype/index.d.ts',
+        'types/csstype/index.d.ts',
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         propTypesTypings,
-        'node_modules/@types/prop-types/index.d.ts',
+        'types/prop-types/index.d.ts',
       );
       monaco.languages.registerCompletionItemProvider('css', {
         provideCompletionItems(model, position) {

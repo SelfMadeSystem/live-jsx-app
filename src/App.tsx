@@ -1,10 +1,11 @@
 import { CompilerResult, Result } from './Result';
 import { MonacoEditor } from './monaco/MonacoEditor';
 import { MonacoProvider } from './monaco/MonacoProvider';
-import initSwc, { transform } from '@swc/wasm-web';
+import initSwc from '@swc/wasm-web';
 import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
 import type { Message } from 'console-feed/lib/definitions/Component';
 import { useEffect, useState } from 'react';
+import { transformTsx } from './parsy';
 
 export default function App() {
   const [result, setResult] = useState<CompilerResult>({
@@ -26,37 +27,11 @@ export default function App() {
     if (!initialized) {
       return;
     }
-    const newResult = await transform(code, {
-      jsc: {
-        parser: {
-          syntax: 'typescript',
-          tsx: true,
-          decorators: true,
-        },
-        target: 'es2020',
-      },
-      isModule: true,
-    }).catch(e => {
-      // typeof e === 'string' for some reason
-      // eslint-disable-next-line no-control-regex
-      const eWithoutAnsi = e.replace(/\u001b\[\d+m/g, '');
-      setLogs([
-        {
-          data: [eWithoutAnsi],
-          id: '0',
-          method: 'error',
-        },
-      ]);
-      setResult({ error: e });
-      return undefined;
-    });
-    if (!newResult) {
-      return;
-    }
-    if (newResult.code !== result.code) {
+    const newResult = await transformTsx(code);
+    if (newResult.code !== undefined && newResult.code !== result.code) {
       setLogs([]);
-      setResult({ code: newResult.code });
     }
+    setResult(newResult);
   }
 
   return (
