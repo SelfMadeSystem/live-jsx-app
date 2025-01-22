@@ -32,9 +32,8 @@ export function MonacoEditor({
       value,
       language,
       readOnly,
-      automaticLayout: true,
       wordWrap: 'on',
-      theme: 'vsc2',
+      theme: 'vs-dark',
     });
 
     if (model) {

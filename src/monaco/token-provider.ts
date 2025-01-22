@@ -25,15 +25,6 @@ Time of yoink: 2025-01-22 17:28:51 UTC
  *
  */
 
-export const rules = [
-  { token: 'identifier.ts', foreground: '9CDCFE' },
-  { token: 'variable.property.ts', foreground: '9CDCFE' },
-  { token: 'constant.ts', foreground: '4FC1FF' },
-  { token: 'variable.ts', foreground: '9CDCFE' },
-  { token: 'method.ts', foreground: 'DCDCAA' },
-  // { token: "delimiter.ts", foreground: "569CD6" },
-];
-
 export const tokenProvider = {
   defaultToken: 'invalid',
   tokenPostfix: '.ts',
@@ -368,7 +359,7 @@ export const tokenProvider = {
         ],
       ],
       { include: 'jsxReady' },
-      [/./, 'string'],
+      [/./, ''],
     ],
 
     jsxClose: [

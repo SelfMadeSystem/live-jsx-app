@@ -4,7 +4,7 @@ import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw'
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
 import { MonacoContext } from './MonacoContext';
-import { rules, tokenProvider } from './token-provider';
+import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import type { MonacoTailwindcss } from 'monaco-tailwindcss';
@@ -94,15 +94,6 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
   inherits: \${3:initial};
   initial-value: \${4:initial};
 }`,
-      });
-
-      monaco.editor.defineTheme('vsc2', {
-        base: 'vs-dark',
-        inherit: true,
-        rules,
-        colors: {
-          'editor.background': '#1e1e1e',
-        },
       });
 
       monaco.languages.setMonarchTokensProvider(
