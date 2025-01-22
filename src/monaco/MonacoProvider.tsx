@@ -2,6 +2,8 @@ import type * as m from 'monaco-editor';
 import propTypesTypings from '../../node_modules/@types/prop-types/index.d.ts?raw';
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
+import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts?raw';
+import reactDomClientTypings from '../../node_modules/@types/react-dom/client.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
@@ -133,6 +135,14 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         propTypesTypings,
         'types/prop-types/index.d.ts',
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        reactDomIndexTypings,
+        'types/react-dom/index.d.ts',
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        reactDomClientTypings,
+        'types/react-dom/client.d.ts',
       );
       monaco.languages.registerCompletionItemProvider('css', {
         provideCompletionItems(model, position) {

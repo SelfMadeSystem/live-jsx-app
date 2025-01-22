@@ -117,6 +117,7 @@ function ResultTab({ code }: { code: string }) {
   const scriptParentRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement>(null);
   const rootId = useId();
+  const prevObjUrl = useRef<string | null>(null);
 
   useEffect(() => {
     const scriptParent = scriptParentRef.current;
@@ -137,15 +138,28 @@ function ResultTab({ code }: { code: string }) {
         });
     }
 
+    const data = new TextEncoder().encode(code);
+    const blob = new Blob([data], { type: 'application/javascript' });
+
+    if (prevObjUrl.current) {
+      URL.revokeObjectURL(prevObjUrl.current);
+    }
+    const url = URL.createObjectURL(blob);
+    prevObjUrl.current = url;
+
+    console.log(url);
+
     const script = document.createElement('script');
     script.type = 'module';
     script.textContent = `\
-import * as __ReactDOM__ from "react-dom";
-import * as __React__ from "react";
-${code}
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "${url}";
 
-__ReactDOM__.render(
-  __React__.createElement(App),
+console.log(App);
+
+ReactDOM.render(
+  React.createElement(App),
   document.getElementById("${rootId}")
 );`;
     scriptParent.innerHTML = '';
