@@ -1,112 +1,24 @@
 import { CompilerResult } from './Result';
-import {
-  AssignmentPatternProperty,
-  ImportSpecifier,
-  Module,
-  ModuleItem,
-  ObjectPattern,
-  StringLiteral,
-  VariableDeclaration,
-  VariableDeclarator,
-  parse,
-  transform,
-} from '@swc/wasm-web';
+import { Module, parse, transform } from '@swc/wasm-web';
 
-/*
-I want to convert:
+const importPathMap = {
+  react: 'https://cdn.skypack.dev/react',
+  'react-dom': 'https://cdn.skypack.dev/react-dom',
+};
 
-  import { useState } from 'react';
-  import React from 'react';
-  import React, { useState } from 'react';
-  import * as React from 'react';
-
-Into:
-
-  const { useState } = React;
-  // <nothing> (React is already defined globally)
-  const { useState } = React;
-  // <also nothing>
-
- */
-
-function importSpecifierToVariableDeclarator(
-  specifiers: ImportSpecifier[],
-  source: StringLiteral,
-): VariableDeclarator & {
-  id: {
-    type: 'ObjectPattern';
-  };
-} {
-  const properties: AssignmentPatternProperty[] = [];
-
-  for (const specifier of specifiers) {
-    // Ignore default imports and namespace imports
-    if (specifier.type === 'ImportSpecifier') {
-      properties.push({
-        type: 'AssignmentPatternProperty',
-        span: specifier.span,
-        key: specifier.local,
-      });
-    }
-  }
-
-  return {
-    type: 'VariableDeclarator',
-    span: specifiers[0].span,
-    definite: false,
-    id: {
-      type: 'ObjectPattern',
-      span: specifiers[0].span,
-      // @ts-expect-error I think the types are wrong
-      ctxt: 1,
-      properties,
-      optional: false,
-    } satisfies ObjectPattern,
-    init: {
-      type: 'Identifier',
-      span: source.span,
-      // @ts-expect-error I think the types are wrong
-      ctxt: 1,
-      value: 'React',
-      optional: false,
-    },
-  };
-}
-
-function replaceImports(module: Module): Module {
-  const newBody: ModuleItem[] = [];
-  for (let i = 0; i < module.body.length; i++) {
-    const node = module.body[i];
-    if (node.type !== 'ImportDeclaration') {
-      newBody.push(node);
-      continue;
-    }
+function replaceImports(module: Module) {
+  for (const node of module.body) {
+    if (node.type !== 'ImportDeclaration') continue;
 
     const importPath = node.source.value;
-    if (importPath === 'react') {
-      const declarators = importSpecifierToVariableDeclarator(
-        node.specifiers,
-        node.source,
-      );
-
-      if (declarators.id.properties.length > 0) {
-        newBody.push({
-          type: 'VariableDeclaration',
-          kind: 'const',
-          span: node.span,
-          // @ts-expect-error I think the types are wrong
-          ctxt: 0,
-          declare: false,
-          declarations: [declarators],
-        } satisfies VariableDeclaration);
-      }
+    
+    if (importPath in importPathMap) {
+      const newImportPath =
+      importPathMap[importPath as keyof typeof importPathMap];
+      node.source.value = newImportPath;
+      node.source.raw = `"${newImportPath}"`;
     }
   }
-
-  return {
-    ...module,
-    body: newBody,
-  };
 }
 
 export async function transformTsx(code: string): Promise<CompilerResult> {
@@ -124,9 +36,10 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
     return result;
   }
 
-  const replacedResult = replaceImports(result);
+  replaceImports(result);
+  console.log(result);
 
-  const transformed = await transform(replacedResult, {
+  const transformed = await transform(result, {
     jsc: {
       target: 'es2020',
       parser: {
