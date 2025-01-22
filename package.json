@@ -10,12 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/loader": "^1.4.0",
+    "@shikijs/monaco": "^2.1.0",
     "@swc/wasm-web": "^1.10.9",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.1",
     "ansi-to-html": "^0.7.2",
     "console-feed": "^3.6.0",
+    "emmet-monaco-es": "^5.5.0",
     "highlight.js": "^11.11.1",
+    "monaco-editor": "^0.52.2",
+    "monaco-tailwindcss": "^0.6.1",
+    "prettier-plugin-tailwindcss": "^0.6.10",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "shiki": "^2.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
