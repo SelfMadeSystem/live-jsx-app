@@ -1,13 +1,14 @@
-import hljs from "highlight.js";
-import AnsiToHtml from "ansi-to-html";
-import "highlight.js/styles/github.css";
-import { useEffect, useId, useRef, useState } from "react";
-import { Hook, Console, Unhook } from "console-feed";
-import type { Message } from "console-feed/lib/definitions/Component";
+import { MonacoContext } from './monaco/MonacoContext';
+import AnsiToHtml from 'ansi-to-html';
+import { Console, Hook, Unhook } from 'console-feed';
+import type { Message } from 'console-feed/lib/definitions/Component';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css';
+import { useContext, useEffect, useId, useRef, useState } from 'react';
 
 const ansiToHtml = new AnsiToHtml();
 
-const tabs = ["code", "console", "result"] as const;
+const tabs = ['code', 'console', 'result'] as const;
 
 type Tab = (typeof tabs)[number];
 
@@ -36,21 +37,21 @@ export function Result({
   logs: Message[];
   setLogs: React.Dispatch<React.SetStateAction<Message[]>>;
 }) {
-  const [tab, setTab] = useState<Tab>("code");
-  const ansiError = error ? ansiToHtml.toHtml(error) : "";
-  const ansiWarning = warning ? ansiToHtml.toHtml(warning) : "";
+  const [tab, setTab] = useState<Tab>('code');
+  const ansiError = error ? ansiToHtml.toHtml(error) : '';
+  const ansiWarning = warning ? ansiToHtml.toHtml(warning) : '';
   const highlightCode = code
     ? hljs.highlight(code, {
-        language: "javascript",
+        language: 'javascript',
       }).value
-    : "";
+    : '';
 
   useEffect(() => {
     const hookedConsole = Hook(
       window.console,
       // @ts-expect-error console-feed types are inconsistent
-      (log) => setLogs((currLogs) => [...currLogs, log]),
-      false
+      log => setLogs(currLogs => [...currLogs, log]),
+      false,
     );
     return () => {
       Unhook(hookedConsole);
@@ -58,7 +59,7 @@ export function Result({
   }, [setLogs]);
 
   const codeTab = (
-    <pre className="bg-gray-100 p-2 whitespace-pre-wrap">
+    <pre className="whitespace-pre-wrap bg-gray-100 p-2">
       {error ? (
         <div dangerouslySetInnerHTML={{ __html: ansiError }} />
       ) : warning ? (
@@ -86,41 +87,60 @@ export function Result({
   return (
     <div>
       <div className="flex">
-        {tabs.map((t) => (
+        {tabs.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`${
-              t === tab ? "bg-gray-200" : "bg-gray-100"
-            } p-2 flex-1 text-center`}
+              t === tab ? 'bg-gray-200' : 'bg-gray-100'
+            } flex-1 p-2 text-center`}
           >
             {t}
           </button>
         ))}
       </div>
-      {tab === "code" && codeTab}
-      {tab === "console" && consoleTab}
+      {tab === 'code' && codeTab}
+      {tab === 'console' && consoleTab}
       {code ? (
-        <div className={tab === "result" ? "" : "hidden"}>
+        <div className={tab === 'result' ? '' : 'hidden'}>
           <ResultTab code={code} />
         </div>
       ) : (
-        tab === "result" && codeTab
+        tab === 'result' && codeTab
       )}
     </div>
   );
 }
 
 function ResultTab({ code }: { code: string }) {
+  const { tailwindcss } = useContext(MonacoContext);
   const scriptParentRef = useRef<HTMLDivElement>(null);
+  const styleRef = useRef<HTMLStyleElement>(null);
   const rootId = useId();
 
   useEffect(() => {
     const parent = scriptParentRef.current;
-    if (!parent) return;
+    const style = styleRef.current;
+    if (!parent || !style) return;
 
-    const script = document.createElement("script");
-    script.type = "module";
+    style.textContent = '';
+
+    if (tailwindcss) {
+      tailwindcss
+        ?.generateStylesFromContent(
+          `\
+@tailwind base;
+@tailwind components;
+@tailwind utilities;`,
+          [code],
+        )
+        .then(css => {
+          style.textContent = css;
+        });
+    }
+
+    const script = document.createElement('script');
+    script.type = 'module';
     script.textContent = `\
 import * as React from "https://cdn.skypack.dev/react";
 import * as ReactDOM from "https://cdn.skypack.dev/react-dom";
@@ -130,13 +150,14 @@ ReactDOM.render(
   React.createElement(App),
   document.getElementById("${rootId}")
 );`;
-    parent.innerHTML = "";
+    parent.innerHTML = '';
     parent.appendChild(script);
-  }, [code, rootId]);
+  }, [code, rootId, tailwindcss]);
 
   return (
     <div className="bg-gray-100 p-2">
       <div ref={scriptParentRef} />
+      <style ref={styleRef} />
       <div id={rootId} />
     </div>
   );

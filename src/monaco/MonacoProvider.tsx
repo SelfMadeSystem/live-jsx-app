@@ -8,15 +8,14 @@ import { rules, tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import type { MonacoTailwindcss } from 'monaco-tailwindcss';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
   const [tailwindcss, setTailwindcss] = useState<MonacoTailwindcss | null>(
     null,
   );
-  const [tailwindEnabled, _setTailwindEnabled] = useState(false);
-  const [hasEnabledTailwind, setHasEnabledTailwind] = useState(false);
+  const [tailwindEnabled, _setTailwindEnabled] = useState(true);
   const classListRef = useRef<string[]>([]);
   const [classList, _setClassList] = useState<string[]>([]);
 
@@ -25,30 +24,30 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
     _setClassList(classList);
   }
 
-  const setTailwindEnabled = useCallback(
-    async (enabled: boolean) => {
-      _setTailwindEnabled(enabled);
-      if (!monaco) return;
-      if (enabled) {
-        setHasEnabledTailwind(true);
-        const { configureMonacoTailwindcss } = await import(
-          'monaco-tailwindcss'
-        );
+  async function setTailwindEnabled(enabled: boolean) {
+    _setTailwindEnabled(enabled);
+    if (!monaco) return;
+    if (enabled) {
+      if (tailwindcss) return;
+      const { configureMonacoTailwindcss } = await import('monaco-tailwindcss');
 
-        // It appears that `tailwindcssData` is automatically loaded.
+      // It appears that `tailwindcssData` is automatically loaded.
 
-        const mtw = configureMonacoTailwindcss(monaco);
-        setTailwindcss(mtw);
-      } else {
-        setTailwindcss(null);
-        monaco.languages.css.cssDefaults.setOptions({});
-        if (tailwindcss) tailwindcss?.dispose();
-      }
-    },
-    [monaco, tailwindcss],
-  );
+      const mtw = configureMonacoTailwindcss(monaco);
+      setTailwindcss(mtw);
+    } else {
+      if (!tailwindcss) return;
+      setTailwindcss(null);
+      monaco.languages.css.cssDefaults.setOptions({});
+      if (tailwindcss) tailwindcss?.dispose();
+    }
+  }
+
+  const initted = useRef(false);
 
   useEffect(() => {
+    if (initted.current) return;
+    initted.current = true;
     function NewWorker(url: string) {
       const worker = new Worker(new URL(url, window.location.origin).href, {
         type: 'module',
@@ -215,23 +214,15 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
           return { suggestions };
         },
       });
+
+      const { configureMonacoTailwindcss } = await import('monaco-tailwindcss');
+
+      // It appears that `tailwindcssData` is automatically loaded.
+
+      const mtw = configureMonacoTailwindcss(monaco);
+      setTailwindcss(mtw);
     });
   }, []);
-
-  useEffect(() => {
-    if (!monaco || hasEnabledTailwind) return;
-    setHasEnabledTailwind(true);
-    // Sometimes, `tailwindEnabled` is set to true before `monaco` is loaded.
-    if (tailwindEnabled && !tailwindcss) {
-      setTailwindEnabled(true);
-    }
-  }, [
-    hasEnabledTailwind,
-    monaco,
-    setTailwindEnabled,
-    tailwindEnabled,
-    tailwindcss,
-  ]);
 
   return (
     <MonacoContext.Provider
