@@ -54,7 +54,6 @@ export function MonacoEditor({
     if (!monaco || !editorRef.current) return;
 
     if (value !== undefined && value !== editorRef.current.getValue()) {
-      console.log('Setting value');
       editorRef.current.setValue(value);
     }
   }, [monaco, value]);

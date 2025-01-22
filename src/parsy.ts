@@ -125,8 +125,6 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
   }
 
   const replacedResult = replaceImports(result);
-  console.log(result);
-  console.log(replacedResult);
 
   const transformed = await transform(replacedResult, {
     jsc: {
