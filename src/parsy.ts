@@ -78,8 +78,6 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
 
   const classList = findCssClassList(result.body);
 
-  console.log(classList);
-
   const transformed = await transform(result, {
     jsc: {
       target: 'es2020',
