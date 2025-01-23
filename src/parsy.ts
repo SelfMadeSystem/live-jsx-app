@@ -22,12 +22,13 @@ function findCssClassList(
     traversed.add(item);
     if ('type' in item) {
       if (item.type === 'JSXAttribute') {
-        findCssClassList(
-          [(item as JSXAttribute).value],
-          classNames,
-          traversed,
-          true,
-        );
+        const jsxItem = item as JSXAttribute;
+        if (
+          jsxItem.name.type === 'Identifier' &&
+          jsxItem.name.value === 'className'
+        ) {
+          findCssClassList([jsxItem.value], classNames, traversed, true);
+        }
       } else if (frFind) {
         if (item.type === 'StringLiteral') {
           for (const className of (item as StringLiteral).value

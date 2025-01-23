@@ -104,6 +104,8 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       return;
     }
 
+    console.log('hi');
+
     const controller = new AbortController();
     const { signal } = controller;
 

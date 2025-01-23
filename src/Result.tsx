@@ -105,13 +105,10 @@ export function Result({
       </div>
       {tab === 'code' && codeTab}
       {tab === 'console' && consoleTab}
-      {code ? (
-        <div className={tab === 'result' ? '' : 'hidden'}>
-          <ResultTab js={code} css={css} />
-        </div>
-      ) : (
-        tab === 'result' && codeTab
-      )}
+      <div className={(!code || tab) === 'result' ? '' : 'hidden'}>
+        <ResultTab js={code ?? ''} css={css} />
+      </div>
+      {!code && tab === 'result' && codeTab}
     </div>
   );
 }
