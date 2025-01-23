@@ -1,4 +1,4 @@
-import React from '/web_modules/react';
+import React from '/web_modules/react.js';
 
 export const Children = React.Children;
 export const Component = React.Component;

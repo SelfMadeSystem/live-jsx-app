@@ -1,4 +1,4 @@
-import ReactDOM from '/web_modules/react-dom';
+import ReactDOM from '/web_modules/react-dom.js';
 
 export const createPortal = ReactDOM.createPortal;
 export const createRoot = ReactDOM.createRoot;

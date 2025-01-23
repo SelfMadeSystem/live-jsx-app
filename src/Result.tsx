@@ -156,8 +156,6 @@ import React from "react";
 import ReactDOM from "react-dom";
 import App from "${url}";
 
-console.log(App);
-
 ReactDOM.render(
   React.createElement(App),
   document.getElementById("${rootId}")
