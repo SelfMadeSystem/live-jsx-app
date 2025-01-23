@@ -97,7 +97,7 @@ export function MonacoProvider({
         '@property': `\
 @property --\${1:property} {
   syntax: '\${2:value}';
-  inherits: \${3:initial};
+  inherits: \${3:inherits};
   initial-value: \${4:initial};
 }`,
       });
