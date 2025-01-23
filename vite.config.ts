@@ -1,14 +1,31 @@
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/monaco-editor/min/vs',
+          dest: 'min/vs',
+        },
+        {
+          src: 'node_modules/monaco-editor/esm/vs',
+          dest: 'esm/vs',
+        },
+      ],
+    }),
+  ],
   resolve: {
     alias: {
       '/web_modules/react.js': 'react',
       '/web_modules/react-dom.js': 'react-dom',
       '/web_modules/react-dom-client.js': 'react-dom/client',
+      '/esm/vs': '/node_modules/monaco-editor/esm/vs',
+      '/min/vs': '/node_modules/monaco-editor/min/vs',
     },
   },
   build: {
