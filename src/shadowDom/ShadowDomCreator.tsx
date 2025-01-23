@@ -247,7 +247,6 @@ ${css}`,
     });
 
     return () => {
-      console.log(controller);
       controller.abort();
     };
   }, [css, js, tailwindcss, tailwindEnabled, shadowId]);

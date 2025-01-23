@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@monaco-editor/loader": "^1.4.0",
-    "@shikijs/monaco": "^2.1.0",
     "@swc/wasm-web": "^1.10.9",
     "@trivago/prettier-plugin-sort-imports": "^5.2.1",
     "ansi-to-html": "^0.7.2",
@@ -23,8 +22,7 @@
     "postcss-safe-parser": "^7.0.1",
     "prettier-plugin-tailwindcss": "^0.6.10",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "shiki": "^2.1.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
