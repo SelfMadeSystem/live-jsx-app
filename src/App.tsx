@@ -1,5 +1,5 @@
 import { CompilerResult, Result } from './Result';
-import { DEFAULT_TSX, DEFAULT_CSS } from './consts';
+import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
 import { MonacoEditor } from './monaco/MonacoEditor';
 import { MonacoEditors } from './monaco/MonacoEditors';
 import { MonacoProvider } from './monaco/MonacoProvider';
@@ -16,7 +16,7 @@ export default function App() {
   const [result, setResult] = useState<CompilerResult>({
     code: '',
   });
-  const [css, setCss] = useState('');
+  const [css, setCss] = useState(DEFAULT_CSS);
   const [logs, setLogs] = useState<Message[]>([]);
 
   const [initialized, setInitialized] = useState(swcInitialized);
@@ -57,13 +57,13 @@ export default function App() {
           <MonacoEditors>
             <MonacoEditor
               value={DEFAULT_TSX}
-              filename='main.tsx'
+              filename="main.tsx"
               language="typescript"
               onChange={handleChange}
             />
             <MonacoEditor
               value={DEFAULT_CSS}
-              filename='main.css'
+              filename="main.css"
               language="css"
               onChange={setCss}
             />
