@@ -15,6 +15,7 @@ let swcInitialized = false;
 export default function App() {
   const [result, setResult] = useState<CompilerResult>({
     code: '',
+    classList: new Set(),
   });
   const [css, setCss] = useState(DEFAULT_CSS);
   const [logs, setLogs] = useState<Message[]>([]);
@@ -51,7 +52,7 @@ export default function App() {
   }
 
   return (
-    <MonacoProvider>
+    <MonacoProvider classList={result.classList || new Set()}>
       <div className="flex min-h-screen w-full flex-row">
         <div className="w-1/2">
           <MonacoEditors>

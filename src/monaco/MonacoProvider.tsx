@@ -1,9 +1,9 @@
 import type * as m from 'monaco-editor';
 import propTypesTypings from '../../node_modules/@types/prop-types/index.d.ts?raw';
+import reactDomClientTypings from '../../node_modules/@types/react-dom/client.d.ts?raw';
+import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts?raw';
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
-import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts?raw';
-import reactDomClientTypings from '../../node_modules/@types/react-dom/client.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
@@ -12,19 +12,23 @@ import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import type { MonacoTailwindcss } from 'monaco-tailwindcss';
 import { useEffect, useRef, useState } from 'react';
 
-export function MonacoProvider({ children }: { children: React.ReactNode }) {
+export function MonacoProvider({
+  classList,
+  children,
+}: {
+  classList: Set<string>;
+  children: React.ReactNode;
+}) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
   const [tailwindcss, setTailwindcss] = useState<MonacoTailwindcss | null>(
     null,
   );
   const [tailwindEnabled, _setTailwindEnabled] = useState(true);
   const classListRef = useRef<string[]>([]);
-  const [classList, _setClassList] = useState<string[]>([]);
 
-  function setClassList(classList: string[]) {
-    classListRef.current = classList;
-    _setClassList(classList);
-  }
+  useEffect(() => {
+    classListRef.current = Array.from(classList);
+  }, [classList]);
 
   async function setTailwindEnabled(enabled: boolean) {
     _setTailwindEnabled(enabled);
@@ -113,7 +117,6 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
         typeRoots: ['types'],
-        
       });
       monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
@@ -236,7 +239,6 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
         tailwindEnabled,
         setTailwindEnabled,
         classList,
-        setClassList,
       }}
     >
       {children}

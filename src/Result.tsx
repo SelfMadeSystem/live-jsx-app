@@ -14,11 +14,13 @@ type Tab = (typeof tabs)[number];
 
 export type CompilerResult = {
   code?: string;
+  classList?: Set<string>;
   error?: string;
   warning?: string;
 } & (
   | {
       code: string;
+      classList: Set<string>;
     }
   | {
       error: string;
@@ -116,7 +118,7 @@ export function Result({
 
 function ResultTab({ js, css }: { js: string; css: string }) {
   return (
-    <div className="flex min-h-[50vh] h-64 flex-col bg-gray-100 p-2">
+    <div className="flex h-64 min-h-[50vh] flex-col bg-gray-100 p-2">
       <ShadowDomCreator js={js} css={css} />
     </div>
   );

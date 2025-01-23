@@ -3,12 +3,13 @@ import { useState } from 'react';
 
 export default function App() {
   const [count, setCount] = useState<number>(0);
+  const overTen = count > 10;
 
   return (
     <div className="flex flex-col items-center justify-center bg-gray-100">
       <p className="text-2xl font-bold mb-4">{count}</p>
       <button 
-        className="fancy-btn px-4 py-2 text-white rounded"
+        className={\`fancy-btn px-4 py-2 text-white rounded \${overTen ? "uwuness" : ""}\`}
         onClick={() => setCount(count + 1)}
       >
         Increment
