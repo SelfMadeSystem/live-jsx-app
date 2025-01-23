@@ -1,4 +1,4 @@
-export const DEFAULT_TSX = `\
+export const DEFAULT_TSX = /*js*/ `\
 import { useState } from 'react';
 
 export default function App() {

@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '/web_modules/react.js': 'react',
       '/web_modules/react-dom.js': 'react-dom',
+      '/web_modules/react-dom-client.js': 'react-dom/client',
     },
   },
   build: {

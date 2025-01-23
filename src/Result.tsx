@@ -1,10 +1,10 @@
-import { MonacoContext } from './monaco/MonacoContext';
+import { ShadowDomCreator } from './shadowDom/ShadowDomCreator';
 import AnsiToHtml from 'ansi-to-html';
 import { Console, Hook, Unhook } from 'console-feed';
 import type { Message } from 'console-feed/lib/definitions/Component';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
-import { useContext, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const ansiToHtml = new AnsiToHtml();
 
@@ -113,62 +113,9 @@ export function Result({
 }
 
 function ResultTab({ code }: { code: string }) {
-  const { tailwindcss } = useContext(MonacoContext);
-  const scriptParentRef = useRef<HTMLDivElement>(null);
-  const styleRef = useRef<HTMLStyleElement>(null);
-  const rootId = useId();
-  const prevObjUrl = useRef<string | null>(null);
-
-  useEffect(() => {
-    const scriptParent = scriptParentRef.current;
-    const style = styleRef.current;
-    if (!scriptParent || !style) return;
-
-    if (tailwindcss) {
-      tailwindcss
-        ?.generateStylesFromContent(
-          `\
-@tailwind base;
-@tailwind components;
-@tailwind utilities;`,
-          [code],
-        )
-        .then(css => {
-          style.textContent = css;
-        });
-    }
-
-    const data = new TextEncoder().encode(code);
-    const blob = new Blob([data], { type: 'application/javascript' });
-
-    if (prevObjUrl.current) {
-      URL.revokeObjectURL(prevObjUrl.current);
-    }
-    const url = URL.createObjectURL(blob);
-    prevObjUrl.current = url;
-
-    console.log(url);
-
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `\
-import React from "react";
-import ReactDOM from "react-dom";
-import App from "${url}";
-
-ReactDOM.render(
-  React.createElement(App),
-  document.getElementById("${rootId}")
-);`;
-    scriptParent.innerHTML = '';
-    scriptParent.appendChild(script);
-  }, [code, rootId, tailwindcss]);
-
   return (
     <div className="bg-gray-100 p-2">
-      <div ref={scriptParentRef} />
-      <style ref={styleRef} />
-      <div id={rootId} />
+      <ShadowDomCreator js={code} css="" />
     </div>
   );
 }
