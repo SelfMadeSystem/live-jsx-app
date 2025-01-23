@@ -8,18 +8,26 @@ import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
 import type { Message } from 'console-feed/lib/definitions/Component';
 import { useEffect, useState } from 'react';
 
+let swcStarted = false;
+let swcInitialized = false;
+
 export default function App() {
   const [result, setResult] = useState<CompilerResult>({
     code: '',
   });
   const [logs, setLogs] = useState<Message[]>([]);
 
-  const [initialized, setInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(swcInitialized);
 
   useEffect(() => {
+    if (swcStarted) {
+      return;
+    }
+    swcStarted = true;
     async function importAndRunSwcOnMount() {
       await initSwc(swcWasm);
       setInitialized(true);
+      swcInitialized = true;
       const newResult = await transformTsx(DEFAULT_TSX);
       if (newResult.code !== undefined) {
         setLogs([]);
