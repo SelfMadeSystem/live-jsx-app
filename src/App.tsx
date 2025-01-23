@@ -1,6 +1,7 @@
 import { CompilerResult, Result } from './Result';
-import { DEFAULT_TSX } from './consts';
+import { DEFAULT_TSX, DEFAULT_CSS } from './consts';
 import { MonacoEditor } from './monaco/MonacoEditor';
+import { MonacoEditors } from './monaco/MonacoEditors';
 import { MonacoProvider } from './monaco/MonacoProvider';
 import { transformTsx } from './parsy';
 import initSwc from '@swc/wasm-web';
@@ -15,6 +16,7 @@ export default function App() {
   const [result, setResult] = useState<CompilerResult>({
     code: '',
   });
+  const [css, setCss] = useState('');
   const [logs, setLogs] = useState<Message[]>([]);
 
   const [initialized, setInitialized] = useState(swcInitialized);
@@ -52,16 +54,24 @@ export default function App() {
     <MonacoProvider>
       <div className="flex min-h-screen w-full flex-row">
         <div className="w-1/2">
-          <MonacoEditor
-            value={DEFAULT_TSX}
-            language="typescript"
-            jsx
-            onChange={handleChange}
-          />
+          <MonacoEditors>
+            <MonacoEditor
+              value={DEFAULT_TSX}
+              filename='main.tsx'
+              language="typescript"
+              onChange={handleChange}
+            />
+            <MonacoEditor
+              value={DEFAULT_CSS}
+              filename='main.css'
+              language="css"
+              onChange={setCss}
+            />
+          </MonacoEditors>
         </div>
         <div className="flex w-1/2 flex-col">
           <div className="text-center text-lg font-bold">Output:</div>
-          <Result result={result} logs={logs} setLogs={setLogs} />
+          <Result css={css} result={result} logs={logs} setLogs={setLogs} />
         </div>
       </div>
     </MonacoProvider>

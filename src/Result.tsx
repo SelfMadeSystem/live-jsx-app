@@ -29,10 +29,12 @@ export type CompilerResult = {
 );
 
 export function Result({
+  css,
   result: { code, error, warning },
   logs,
   setLogs,
 }: {
+  css: string;
   result: CompilerResult;
   logs: Message[];
   setLogs: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -103,7 +105,7 @@ export function Result({
       {tab === 'console' && consoleTab}
       {code ? (
         <div className={tab === 'result' ? '' : 'hidden'}>
-          <ResultTab code={code} />
+          <ResultTab js={code} css={css} />
         </div>
       ) : (
         tab === 'result' && codeTab
@@ -112,10 +114,10 @@ export function Result({
   );
 }
 
-function ResultTab({ code }: { code: string }) {
+function ResultTab({ js, css }: { js: string; css: string }) {
   return (
-    <div className="bg-gray-100 p-2">
-      <ShadowDomCreator js={code} css="" />
+    <div className="flex min-h-[50vh] h-64 flex-col bg-gray-100 p-2">
+      <ShadowDomCreator js={js} css={css} />
     </div>
   );
 }

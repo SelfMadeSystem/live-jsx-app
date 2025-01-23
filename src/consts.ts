@@ -17,3 +17,7 @@ export default function App() {
   );
 }
 `;
+
+export const DEFAULT_CSS = /*js*/ `\
+/* hi */
+`;

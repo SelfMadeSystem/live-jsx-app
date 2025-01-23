@@ -255,7 +255,7 @@ ${css}`,
   return (
     <>
       <div
-        className="isolate flex h-full w-full transform-cpu items-center justify-center overflow-hidden"
+        className="isolate flex h-full w-full grow transform-cpu items-center justify-center overflow-hidden"
         ref={previewRef}
       ></div>
     </>

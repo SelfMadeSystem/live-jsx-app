@@ -1,73 +1,38 @@
-import type * as m from 'monaco-editor';
+import * as m from 'monaco-editor';
 import { MonacoContext } from './MonacoContext';
+import { MonacoEditorsContext } from './MonacoEditorsContext';
 import { useContext, useEffect, useRef } from 'react';
 
 export function MonacoEditor({
   value,
+  filename,
   onChange,
   language,
-  readOnly,
-  jsx,
 }: {
   value?: string;
+  filename: string;
   onChange: (value: string) => void;
   language: string;
-  readOnly?: boolean;
-  jsx?: boolean;
 }) {
-  const divRef = useRef<HTMLDivElement | null>(null);
-  const editorRef = useRef<m.editor.IStandaloneCodeEditor | null>(null);
-  const { monaco, tailwindEnabled } = useContext(MonacoContext);
+  const { editor, addModel } = useContext(MonacoEditorsContext);
+  const modelRef = useRef<m.editor.ITextModel | null>(null);
+  const { monaco } = useContext(MonacoContext);
 
   useEffect(() => {
-    if (!monaco || editorRef.current) return;
+    if (!monaco || !editor || modelRef.current) return;
 
-    let model;
-    if (jsx) {
-      const modelUri = monaco.Uri.file('main.tsx');
-      model = monaco.editor.createModel(value ?? '', language, modelUri);
-    }
+    const modelUri = monaco.Uri.file(filename);
+    const model = monaco.editor.createModel(value ?? '', language, modelUri);
 
-    editorRef.current = monaco.editor.create(divRef.current!, {
-      value,
-      language,
-      readOnly,
-      wordWrap: 'on',
-      theme: 'vs-dark',
+    if (editor.getModel() === null) editor.setModel(model);
+
+    model.onDidChangeContent(() => {
+      onChange(model.getValue());
     });
 
-    if (model) {
-      editorRef.current.setModel(model);
-    }
+    addModel(model);
+    modelRef.current = model;
+  }, [addModel, editor, filename, language, monaco, onChange, value]);
 
-    editorRef.current.onDidChangeModelContent(() => {
-      onChange(editorRef.current!.getValue());
-    });
-
-    return () => {
-      editorRef.current?.dispose();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, monaco, readOnly, value]);
-
-  useEffect(() => {
-    if (!monaco || !editorRef.current) return;
-
-    if (value !== undefined && value !== editorRef.current.getValue()) {
-      editorRef.current.setValue(value);
-    }
-  }, [monaco, value]);
-
-  useEffect(() => {
-    if (!monaco || !editorRef.current || tailwindEnabled) return;
-
-    // Remove all existing decorations
-    const model = editorRef.current.getModel();
-    if (!model) return;
-
-    const decorations = model.getAllDecorations();
-    editorRef.current.removeDecorations(decorations.map(d => d.id));
-  }, [monaco, tailwindEnabled]);
-
-  return <div ref={divRef} style={{ height: '100%' }} />;
+  return null;
 }
