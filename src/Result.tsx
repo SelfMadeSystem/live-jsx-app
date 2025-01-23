@@ -89,7 +89,7 @@ export function Result({
   );
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="flex">
         {tabs.map(t => (
           <button
@@ -105,7 +105,7 @@ export function Result({
       </div>
       {tab === 'code' && codeTab}
       {tab === 'console' && consoleTab}
-      <div className={(!code || tab) === 'result' ? '' : 'hidden'}>
+      <div className={`h-full ${(!code || tab) === 'result' ? '' : 'hidden'}`}>
         <ResultTab js={code ?? ''} css={css} />
       </div>
       {!code && tab === 'result' && codeTab}
@@ -115,7 +115,7 @@ export function Result({
 
 function ResultTab({ js, css }: { js: string; css: string }) {
   return (
-    <div className="flex h-64 min-h-[50vh] flex-col bg-gray-100 p-2">
+    <div className="flex h-full flex-col bg-gray-100 p-2">
       <ShadowDomCreator js={js} css={css} />
     </div>
   );

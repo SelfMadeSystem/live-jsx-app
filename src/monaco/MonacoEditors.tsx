@@ -4,7 +4,13 @@ import { MonacoEditorsContext } from './MonacoEditorsContext';
 import { useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
 
-export function MonacoEditors({ children }: { children: React.ReactNode }) {
+export function MonacoEditors({
+  children,
+  resizeCbRef,
+}: {
+  children: React.ReactNode;
+  resizeCbRef: React.MutableRefObject<() => void>;
+}) {
   const [editor, setEditor] = useState<m.editor.IStandaloneCodeEditor | null>(
     null,
   );
@@ -33,6 +39,7 @@ export function MonacoEditors({ children }: { children: React.ReactNode }) {
 
     newEditor.setModel(null);
     setEditor(newEditor);
+    resizeCbRef.current = () => newEditor.layout();
 
     return () => {
       newEditor.dispose();
