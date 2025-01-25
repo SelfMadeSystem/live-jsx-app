@@ -16,7 +16,7 @@ export function MonacoEditors({
   );
   const [models, setModels] = useState<m.editor.ITextModel[]>([]);
   const divRef = useRef<HTMLDivElement | null>(null);
-  const { monaco, tailwindEnabled } = useContext(MonacoContext);
+  const { monaco /* , tailwindEnabled */ } = useContext(MonacoContext);
   const [, updateState] = useState({});
   const forceUpdate = () => updateState({});
 
@@ -47,15 +47,15 @@ export function MonacoEditors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monaco]);
 
-  useEffect(() => {
-    if (!monaco || !editor || tailwindEnabled) return;
+  // useEffect(() => {
+  //   if (!monaco || !editor || tailwindEnabled) return;
 
-    // Remove all existing decorations
-    for (const model of models) {
-      const decorations = model.getAllDecorations();
-      editor.removeDecorations(decorations.map(d => d.id));
-    }
-  }, [editor, models, monaco, tailwindEnabled]);
+  //   // Remove all existing decorations
+  //   for (const model of models) {
+  //     const decorations = model.getAllDecorations();
+  //     editor.removeDecorations(decorations.map(d => d.id));
+  //   }
+  // }, [editor, models, monaco, tailwindEnabled]);
 
   const currentModel = editor?.getModel();
 
@@ -67,7 +67,7 @@ export function MonacoEditors({
         <div className="flex w-full flex-row bg-[#1e1e1e] text-white">
           {models.map(model => (
             <button
-              className={`${model === currentModel ? 'bg-gray-800' : ''} px-4 py-2`}
+              className={`${model === currentModel ? 'bg-gray-800' : ''} cursor-pointer px-4 py-2`}
               key={model.uri.toString()}
               onClick={() => {
                 editor?.setModel(model);

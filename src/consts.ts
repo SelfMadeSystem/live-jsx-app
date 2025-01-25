@@ -13,14 +13,14 @@ export default function App() {
       <p className="text-2xl font-bold mb-4">{count}</p>
       <div className={\`seperator-top \${geTen ? "ge-ten" : ""}\`}></div>
       <button
-        className={\`fancy-btn px-4 py-2 text-white rounded \${geTen ? "ge-ten" : ""}\`}
+        className={\`fancy-btn cursor-pointer px-4 py-2 text-white rounded \${geTen ? "ge-ten" : ""}\`}
         onClick={() => setCount(count + 1)}
       >
         Increment
       </button>
       <div className={\`seperator \${geTen ? "ge-ten" : ""}\`}></div>
       <button
-        className={\`fancy-btn px-4 py-2 text-white rounded \${geTen ? "ge-ten" : ""}\`}
+        className={\`fancy-btn cursor-pointer px-4 py-2 text-white rounded \${geTen ? "ge-ten" : ""}\`}
         onClick={() => setCount(count - 1)}
       >
         Decrement

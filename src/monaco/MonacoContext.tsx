@@ -1,10 +1,10 @@
 import type * as m from 'monaco-editor';
-import { MonacoTailwindcss } from 'monaco-tailwindcss';
 import { createContext } from 'react';
+import { TailwindHandler } from '../tailwind/TailwindHandler';
 
 export const MonacoContext = createContext<{
   monaco: typeof m | null;
-  tailwindcss: MonacoTailwindcss | null;
+  tailwindcss: TailwindHandler | null;
   tailwindEnabled: boolean;
   setTailwindEnabled: (enabled: boolean) => void;
   classList: Set<string>;

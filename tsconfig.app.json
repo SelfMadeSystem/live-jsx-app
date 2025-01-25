@@ -23,5 +23,5 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  "exclude": ["public"]
+  "exclude": ["public", "**/*.worker.ts"]
 }

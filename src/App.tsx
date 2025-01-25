@@ -119,7 +119,7 @@ export default function App() {
           </MonacoEditors>
         </div>
         <div
-          className="relative z-10 cursor-col-resize bg-gray-200 outline outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
+          className="relative z-10 cursor-col-resize bg-gray-200 outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
           style={{
             width: lineWidth,
           }}
@@ -135,7 +135,7 @@ export default function App() {
         </div>
       </div>
       <div
-        className="relative z-20 cursor-row-resize bg-gray-200 outline outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
+        className="relative z-20 cursor-row-resize bg-gray-200 outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
         style={{
           height: lineWidth,
         }}

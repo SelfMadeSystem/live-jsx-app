@@ -1,12 +1,14 @@
 export const CSS_PRELUDE = `\
-* {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-}
-button {
-  font-family: inherit;
+@layer __shadow__dom__base__{
+  * {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  button {
+    font-family: inherit;
+  }
 }`;
 export const DEFAULT_HTML = `\
 <svg style="position: absolute; width: 0; height: 0;">

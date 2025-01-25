@@ -63,7 +63,7 @@ export function Result({
   }, [setLogs]);
 
   const codeTab = (
-    <pre className="whitespace-pre-wrap bg-gray-100 p-2">
+    <pre className="bg-gray-100 p-2 whitespace-pre-wrap">
       {error ? (
         <div dangerouslySetInnerHTML={{ __html: ansiError }} />
       ) : warning ? (
@@ -97,7 +97,7 @@ export function Result({
             onClick={() => setTab(t)}
             className={`${
               t === tab ? 'bg-gray-200' : 'bg-gray-100'
-            } flex-1 p-2 text-center`}
+            } flex-1 cursor-pointer p-2 text-center`}
           >
             {t}
           </button>

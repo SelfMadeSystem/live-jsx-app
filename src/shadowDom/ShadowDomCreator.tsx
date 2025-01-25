@@ -92,9 +92,7 @@ function sanitizePropertyName(name: string) {
 }
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
-  const { tailwindcss, tailwindEnabled } = useContext(MonacoContext);
-  const prevScript = useRef<HTMLScriptElement | null>(null);
-  const prevStyle = useRef<HTMLStyleElement | null>(null);
+  const { tailwindcss, tailwindEnabled, classList } = useContext(MonacoContext);
   const previewRef = useRef<HTMLDivElement>(null);
   const shadowRoot = useRef<ShadowRoot | null>(null);
   const shadowId = useId();
@@ -103,8 +101,6 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
     if (!previewRef.current) {
       return;
     }
-
-    console.log('hi');
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -121,20 +117,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         shadowRoot.current = previewRef.current.attachShadow({ mode: 'open' });
       }
 
-      if (prevScript.current) {
-        prevScript.current.remove();
-      }
-
-      if (prevStyle.current) {
-        prevStyle.current.remove();
-      }
-
-      // Create a style element and append it to the shadow root
-      const style = document.createElement('style');
-      style.textContent = CSS_PRELUDE + css;
-      shadowRoot.current.appendChild(style);
-      prevStyle.current = style;
-
+      // Create a blob to load the JS from
       const data = new TextEncoder().encode(js);
       const blob = new Blob([data], { type: 'application/javascript' });
 
@@ -161,28 +144,31 @@ ReactDOM.render(React.createElement(App), rootElement);
 `;
       shadowRoot.current.appendChild(script);
 
+
+      // Create a style element and append it to the shadow root
+      const style = document.createElement('style');
+      style.textContent = CSS_PRELUDE + css;
+      shadowRoot.current.appendChild(style);
+
       signal.addEventListener('abort', () => {
         // // @ts-expect-error window[id + '-root'] is a valid expression
         // window[randomId].unmount();
         script.remove();
         URL.revokeObjectURL(url);
+        script.remove();
+        style.remove();
       });
-
-      prevScript.current = script;
 
       // @ts-expect-error window[id] is a valid expression
       window[shadowId] = shadowRoot.current;
     }
 
     (async () => {
-      const twCss = await tailwindcss?.generateStylesFromContent(
-        /*css*/ `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-${css}`,
-        [js],
+      const twCss = await tailwindcss?.buildCss(
+        `@import 'tailwindcss';${css}`,
+        Array.from(classList),
       );
+
       const postcssRoot = postcss().process(twCss ?? css, {
         parser: safe,
       }).root;
@@ -251,7 +237,7 @@ ${css}`,
     return () => {
       controller.abort();
     };
-  }, [css, js, tailwindcss, tailwindEnabled, shadowId]);
+  }, [css, js, tailwindcss, tailwindEnabled, shadowId, classList]);
 
   return (
     <>

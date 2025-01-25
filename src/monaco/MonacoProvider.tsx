@@ -5,11 +5,11 @@ import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
+import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
-import type { MonacoTailwindcss } from 'monaco-tailwindcss';
 import { useEffect, useRef, useState } from 'react';
 
 export function MonacoProvider({
@@ -20,9 +20,7 @@ export function MonacoProvider({
   children: React.ReactNode;
 }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
-  const [tailwindcss, setTailwindcss] = useState<MonacoTailwindcss | null>(
-    null,
-  );
+  const [tailwindcss, setTailwindcss] = useState<TailwindHandler | null>(null);
   const [tailwindEnabled, _setTailwindEnabled] = useState(true);
   const classListRef = useRef<string[]>([]);
 
@@ -35,17 +33,12 @@ export function MonacoProvider({
     if (!monaco) return;
     if (enabled) {
       if (tailwindcss) return;
-      const { configureMonacoTailwindcss } = await import('monaco-tailwindcss');
-
-      // It appears that `tailwindcssData` is automatically loaded.
-
-      const mtw = configureMonacoTailwindcss(monaco);
-      setTailwindcss(mtw);
+      setTailwindcss(new TailwindHandler());
     } else {
       if (!tailwindcss) return;
       setTailwindcss(null);
-      monaco.languages.css.cssDefaults.setOptions({});
-      if (tailwindcss) tailwindcss?.dispose();
+      // monaco.languages.css.cssDefaults.setOptions({});
+      // if (tailwindcss) tailwindcss?.dispose();
     }
   }
 
@@ -222,12 +215,7 @@ export function MonacoProvider({
         },
       });
 
-      const { configureMonacoTailwindcss } = await import('monaco-tailwindcss');
-
-      // It appears that `tailwindcssData` is automatically loaded.
-
-      const mtw = configureMonacoTailwindcss(monaco);
-      setTailwindcss(mtw);
+      setTailwindcss(new TailwindHandler());
     });
   }, []);
 
