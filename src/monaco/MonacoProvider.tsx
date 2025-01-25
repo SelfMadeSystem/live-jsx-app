@@ -33,7 +33,9 @@ export function MonacoProvider({
     if (!monaco) return;
     if (enabled) {
       if (tailwindcss) return;
-      setTailwindcss(new TailwindHandler());
+      const tailwind = new TailwindHandler();
+      setTailwindcss(tailwind);
+      tailwind.configureMonaco(monaco);
     } else {
       if (!tailwindcss) return;
       setTailwindcss(null);
@@ -215,7 +217,9 @@ export function MonacoProvider({
         },
       });
 
-      setTailwindcss(new TailwindHandler());
+      const tailwind = new TailwindHandler();
+      setTailwindcss(tailwind);
+      tailwind.configureMonaco(monaco);
     });
   }, []);
 

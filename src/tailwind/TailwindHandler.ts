@@ -1,22 +1,50 @@
-import TailwindWorker from "./tailwind.worker?worker";
+import type * as m from 'monaco-editor';
+import { tailwindcssData } from './cssData';
+import TailwindWorker from './tailwind.worker?worker';
+
+let worker: Worker | null = null;
+
+function getWorker() {
+  if (!worker) {
+    worker = new TailwindWorker();
+  }
+  return worker;
+}
 
 export class TailwindHandler {
-  private worker = new TailwindWorker();
-  private previousCss = "";
+  private previousCss = '';
+
+  constructor() {
+    getWorker();
+  }
+
+  public configureMonaco(monaco: typeof m) {
+    const options = monaco.languages.css.cssDefaults.options;
+    monaco.languages.css.cssDefaults.setOptions({
+      ...options,
+      data: {
+        ...options.data,
+        dataProviders: {
+          ...options.data?.dataProviders,
+          tailwindcss: tailwindcssData,
+        },
+      },
+    });
+  }
 
   public async buildCss(css: string, classes: string[]): Promise<string> {
     if (this.previousCss === css) {
       return this.previousCss;
     }
-    return new Promise((resolve) => {
-      this.worker.addEventListener("message", (event) => {
-        if (event.data.type === "buildCssResult") {
+    return new Promise(resolve => {
+      getWorker().addEventListener('message', event => {
+        if (event.data.type === 'buildCssResult') {
           this.previousCss = event.data.result;
           resolve(event.data.result);
         }
       });
-      this.worker.postMessage({
-        type: "buildCss",
+      getWorker().postMessage({
+        type: 'buildCss',
         css,
         classes,
       });
@@ -24,14 +52,14 @@ export class TailwindHandler {
   }
 
   public async buildClasses(classes: string[]): Promise<string> {
-    return new Promise((resolve) => {
-      this.worker.addEventListener("message", (event) => {
-        if (event.data.type === "buildClassesResult") {
+    return new Promise(resolve => {
+      getWorker().addEventListener('message', event => {
+        if (event.data.type === 'buildClassesResult') {
           resolve(event.data.result);
         }
       });
-      this.worker.postMessage({
-        type: "buildClasses",
+      getWorker().postMessage({
+        type: 'buildClasses',
         classes,
       });
     });

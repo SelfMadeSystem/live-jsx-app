@@ -1,5 +1,5 @@
 export const CSS_PRELUDE = `\
-@layer __shadow__dom__base__{
+@layer {
   * {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     padding: 0;

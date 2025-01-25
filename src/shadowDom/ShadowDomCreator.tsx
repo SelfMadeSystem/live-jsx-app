@@ -226,7 +226,11 @@ ReactDOM.render(React.createElement(App), rootElement);
         postcssRoot,
         cssProperties.map((p, i) => [p.name, ids[i]]),
       );
-      const replacedCss = postcssRoot.toString();
+      let replacedCss = postcssRoot.toString();
+      
+      // :root doesn't work in shadow DOM, so we need to replace it with the
+      // :host selector
+      replacedCss = replacedCss.replace(/:root/g, ':host');
 
       // Time to render the shadow DOM
       renderDom(replacedHtml, replacedCss);
