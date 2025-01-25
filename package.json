@@ -12,6 +12,7 @@
   "dependencies": {
     "@monaco-editor/loader": "^1.4.0",
     "@swc/wasm-web": "^1.10.9",
+    "@tailwindcss/language-service": "^0.14.1",
     "@tailwindcss/vite": "^4.0.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.1",
     "ansi-to-html": "^0.7.2",
@@ -19,12 +20,17 @@
     "emmet-monaco-es": "^5.5.0",
     "highlight.js": "^11.11.1",
     "monaco-editor": "^0.52.2",
+    "monaco-languageserver-types": "^0.4.0",
+    "monaco-marker-data-provider": "^1.2.4",
     "postcss-safe-parser": "^7.0.1",
     "prettier-plugin-tailwindcss": "^0.6.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "4.0.0",
-    "vite-plugin-static-copy": "^2.2.0"
+    "util": "^0.12.5",
+    "vite-plugin-static-copy": "^2.2.0",
+    "vscode-emmet-helper": "^2.6.4",
+    "vscode-languageserver-textdocument": "^1.0.12"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

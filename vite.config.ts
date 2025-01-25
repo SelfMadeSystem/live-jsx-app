@@ -28,6 +28,10 @@ export default defineConfig({
       '/web_modules/react-dom-client.js': 'react-dom/client',
       '/esm/vs': '/node_modules/monaco-editor/esm/vs',
       '/min/vs': '/node_modules/monaco-editor/min/vs',
+      'util': './src/stubs/util.ts',
+      'util-deprecate': './src/stubs/util-deprecate.ts',
+      'vscode-emmet-helper-bundled':
+        './src/stubs/vscode-emmet-helper-bundled.ts',
     },
   },
   build: {
