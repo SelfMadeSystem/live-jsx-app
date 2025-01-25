@@ -165,7 +165,8 @@ ReactDOM.render(React.createElement(App), rootElement);
 
     (async () => {
       const twCss = await tailwindcss?.buildCss(
-        `@import 'tailwindcss';${css}`,
+        // let the user manually import tailwindcss if they want
+        css.includes('@import') ? css : `@import 'tailwindcss';${css}`,
         Array.from(classList),
       );
 
