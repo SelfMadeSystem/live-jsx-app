@@ -94,6 +94,7 @@ function sanitizePropertyName(name: string) {
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const { tailwindcss, tailwindEnabled, classList } = useContext(MonacoContext);
   const previewRef = useRef<HTMLDivElement>(null);
+  const styleRef = useRef<HTMLStyleElement | null>(null);
   const shadowRoot = useRef<ShadowRoot | null>(null);
   const shadowId = useId();
 
@@ -144,11 +145,11 @@ ReactDOM.render(React.createElement(App), rootElement);
 `;
       shadowRoot.current.appendChild(script);
 
-
       // Create a style element and append it to the shadow root
-      const style = document.createElement('style');
+      const style = styleRef.current ?? document.createElement('style');
       style.textContent = CSS_PRELUDE + css;
-      shadowRoot.current.appendChild(style);
+      if (!styleRef.current || !shadowRoot.current.parentElement)
+        shadowRoot.current.appendChild((styleRef.current = style));
 
       signal.addEventListener('abort', () => {
         // // @ts-expect-error window[id + '-root'] is a valid expression
@@ -156,7 +157,6 @@ ReactDOM.render(React.createElement(App), rootElement);
         script.remove();
         URL.revokeObjectURL(url);
         script.remove();
-        style.remove();
       });
 
       // @ts-expect-error window[id] is a valid expression
