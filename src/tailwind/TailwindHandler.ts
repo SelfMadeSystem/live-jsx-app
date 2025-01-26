@@ -59,17 +59,28 @@ export { getWorker as getTailwindWorker };
 
 async function callWorker<T extends keyof TailwindcssWorkerWithMirrorModel>(
   type: T,
-  payload: Parameters<TailwindcssWorkerWithMirrorModel[T]>[0],
+  {
+    signal,
+    ...payload
+  }: Parameters<TailwindcssWorkerWithMirrorModel[T]>[0] & {
+    signal?: AbortSignal;
+  },
 ): Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>> {
   return new Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>>(
     resolve => {
       const worker = getWorker();
-      worker.addEventListener('message', function doStuff(event) {
-        if (event.data.type === type) {
-          resolve(event.data.result);
-          worker.removeEventListener('message', doStuff);
-        }
-      });
+      worker.addEventListener(
+        'message',
+        function doStuff(event) {
+          if (event.data.type === type) {
+            resolve(event.data.result);
+            worker.removeEventListener('message', doStuff);
+          }
+        },
+        {
+          signal,
+        },
+      );
       worker.postMessage({
         type,
         ...payload,
@@ -148,6 +159,7 @@ export class TailwindHandler {
   public async buildCss(
     css: string,
     classes: string[],
+    signal?: AbortSignal,
   ): Promise<CssCompilerResult> {
     if (
       this.previousCss === css &&
@@ -157,7 +169,11 @@ export class TailwindHandler {
     }
     this.previousCss = css;
     this.previousClasses = classes;
-    this.previousBuildCss = await callWorker('buildCss', { css, classes });
+    this.previousBuildCss = await callWorker('buildCss', {
+      css,
+      classes,
+      signal,
+    });
     return this.previousBuildCss;
   }
 }

@@ -1,14 +1,14 @@
 import type * as m from 'monaco-editor';
+import { CompilerResult } from '../compiler/compilerResult';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { createContext } from 'react';
-import { CompilerResult } from '../compiler/compilerResult';
 
 export const MonacoContext = createContext<{
   monaco: typeof m | null;
   tailwindcss: TailwindHandler | null;
   tailwindEnabled: boolean;
   setTailwindEnabled: (enabled: boolean) => void;
-  compilerResultRef: React.RefObject<CompilerResult>;
+  compilerResultRef: { readonly current: CompilerResult };
   compilerResult: CompilerResult;
   setCompilerResult: (result: CompilerResult) => void;
 }>({

@@ -1,11 +1,13 @@
 import { CSS_PRELUDE } from './ShadowDomConsts';
 import { useEffect, useId, useRef } from 'react';
+import ReactDOMClient from 'react-dom/client';
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const previewRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<ReactDOMClient.Root | null>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
   const shadowRoot = useRef<ShadowRoot | null>(null);
-  const shadowId = useId();
+  const elemId = useId();
 
   useEffect(() => {
     if (!previewRef.current) {
@@ -26,6 +28,10 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       if (!shadowRoot.current) {
         shadowRoot.current = previewRef.current.attachShadow({ mode: 'open' });
       }
+      // Create the ReactDOM root if it doesn't exist
+      if (!rootRef.current) {
+        rootRef.current = ReactDOMClient.createRoot(shadowRoot.current);
+      }
 
       // Create a blob to load the JS from
       const data = new TextEncoder().encode(js);
@@ -33,24 +39,15 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
 
       const url = URL.createObjectURL(blob);
 
-      // const randomId = `!${Math.random().toString(36).slice(2)}`;
-
       const script = document.createElement('script');
       script.type = 'module';
       script.textContent = /*js*/ `\
 import React from "react";
-import ReactDOM from "react-dom";
-// import ReactDOMClient from "react-dom/client";
 import App from "${url}";
 
-const rootElement = window['${shadowId}'];
+const rootElement = window['${elemId}'];
 
-ReactDOM.render(React.createElement(App), rootElement);
-
-// const root = ReactDOMClient.createRoot(rootElement);
-
-// root.render(React.createElement(App));
-// window['{randomId}'] = root;
+rootElement.render(React.createElement(App));
 `;
       shadowRoot.current.appendChild(script);
 
@@ -69,7 +66,7 @@ ReactDOM.render(React.createElement(App), rootElement);
       });
 
       // @ts-expect-error window[id] is a valid expression
-      window[shadowId] = shadowRoot.current;
+      window[elemId] = rootRef.current;
     }
 
     renderDom(js, css);
@@ -77,7 +74,7 @@ ReactDOM.render(React.createElement(App), rootElement);
     return () => {
       controller.abort();
     };
-  }, [css, js, shadowId]);
+  }, [css, js, elemId]);
 
   return (
     <>

@@ -1,3 +1,4 @@
+import { abortSymbol } from './compilerResult';
 import {
   JSXAttribute,
   StringLiteral,
@@ -79,7 +80,14 @@ export type TsxCompilerResult = {
     }
 );
 
-export async function compileTsx(code: string): Promise<TsxCompilerResult> {
+export type TsxCompilerOptions = {
+  signal?: AbortSignal;
+};
+
+export async function compileTsx(
+  code: string,
+  options?: TsxCompilerOptions,
+): Promise<TsxCompilerResult> {
   const result = await parse(code, {
     syntax: 'typescript',
     tsx: true,
@@ -89,6 +97,10 @@ export async function compileTsx(code: string): Promise<TsxCompilerResult> {
   }).catch(e => {
     return { error: e };
   });
+
+  if (options?.signal?.aborted) {
+    throw abortSymbol;
+  }
 
   if ('error' in result) {
     return result;
@@ -109,6 +121,10 @@ export async function compileTsx(code: string): Promise<TsxCompilerResult> {
   }).catch(e => {
     return { error: e };
   });
+
+  if (options?.signal?.aborted) {
+    throw abortSymbol;
+  }
 
   if ('error' in transformed) {
     return transformed;
