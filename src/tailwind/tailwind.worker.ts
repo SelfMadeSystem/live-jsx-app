@@ -5,6 +5,7 @@ import type * as m from 'monaco-editor';
 import * as tailwindcss from 'tailwindcss';
 import { log } from '../utils';
 import { loadDesignSystem } from './designSystem';
+import { getVariants } from './getVariants';
 import {
   type AugmentedDiagnostic,
   EditorState,
@@ -12,6 +13,7 @@ import {
   // type EditorState,
   // doCodeActions,
   doComplete,
+  getColor,
   // doHover,
   // doValidate,
   // getColor,
@@ -109,13 +111,22 @@ export type RealTailwindcssWorker = Promisified<
 class TailwindcssWorkerImpl implements TailwindcssWorker {
   // public ctx: m.worker.IWorkerContext | null = null;
   public mirrorModels: m.worker.IMirrorModel[] = [];
+  private cachedState: State | null = null;
+  private cachedStateDS: DesignSystem | null = null;
 
   setMirrorModels(models: m.worker.IMirrorModel[]): void {
     this.mirrorModels = models;
   }
 
   getState(): State {
-    return {
+    if (!designSystem) {
+      throw new Error('Design system is not initialized');
+    }
+    if (this.cachedState && this.cachedStateDS === designSystem) {
+      return this.cachedState;
+    }
+    // From https://github.com/tailwindlabs/tailwindcss-intellisense/blob/main/packages/tailwindcss-language-server/src/projects.ts#L213
+    const state: State = {
       enabled: true,
       v4: true,
       version: '4.0.0',
@@ -164,23 +175,25 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
         },
         // This option takes some properties that we don’t have nor need.
       } as Partial<EditorState> as EditorState,
-      designSystem: designSystem!,
-      classList: [
-        [
-          'bg',
-          {
-            color: {
-              mode: 'rgb',
-              r: 0,
-              g: 0,
-              b: 0,
-            },
-            modifiers: ['red', 'green', 'blue'],
-          },
-        ],
-      ],
-      variants: [],
+      designSystem,
+      separator: ':',
+      
     };
+
+    state.classList = designSystem.getClassList().map(className => [
+      className[0],
+      {
+        ...className[1],
+        color: getColor(state, className[0]),
+      },
+    ]);
+
+    state.variants = getVariants(state);
+
+    this.cachedState = state;
+    this.cachedStateDS = designSystem;
+
+    return state;
   }
 
   getDocument(
@@ -231,7 +244,7 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
   }): Promise<CompletionList | undefined> {
     return doComplete(
       this.getState(),
-      log(this.getDocument(uri, languageId, log(this.getModel(uri))!)),
+      this.getDocument(uri, languageId, this.getModel(uri)!),
       position,
       context,
     );
