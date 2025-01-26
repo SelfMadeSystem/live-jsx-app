@@ -1,4 +1,3 @@
-import { CompilerResult } from './Result';
 import {
   JSXAttribute,
   StringLiteral,
@@ -62,7 +61,25 @@ function findCssClassList(
   return classNames;
 }
 
-export async function transformTsx(code: string): Promise<CompilerResult> {
+export type TsxCompilerResult = {
+  code?: string;
+  classList?: Set<string>;
+  error?: string;
+  warning?: string;
+} & (
+  | {
+      code: string;
+      classList: Set<string>;
+    }
+  | {
+      error: string;
+    }
+  | {
+      warning: string;
+    }
+);
+
+export async function compileTsx(code: string): Promise<TsxCompilerResult> {
   const result = await parse(code, {
     syntax: 'typescript',
     tsx: true,
@@ -90,10 +107,7 @@ export async function transformTsx(code: string): Promise<CompilerResult> {
       },
     },
   }).catch(e => {
-    // typeof e === 'string' for some reason
-    // eslint-disable-next-line no-control-regex
-    const eWithoutAnsi = e.replace(/\u001b\[\d+m/g, '');
-    return { error: eWithoutAnsi };
+    return { error: e };
   });
 
   if ('error' in transformed) {

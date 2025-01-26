@@ -3,6 +3,7 @@
 /// <reference types="./monaco-uri.d.ts" />
 import type * as m from 'monaco-editor';
 import * as tailwindcss from 'tailwindcss';
+import { CssCompilerResult } from '../compiler/parseCss';
 import { log } from '../utils';
 import { loadDesignSystem } from './designSystem';
 import { getVariants } from './getVariants';
@@ -90,14 +91,7 @@ export interface TailwindcssWorker {
     languageId: string;
   }) => AugmentedDiagnostic[] | undefined;
 
-  buildCss: (a: { css: string; classes: string[] }) => {
-    css: string;
-    tailwindClasses: {
-      className: string;
-      css: string;
-    }[];
-    notTailwindClasses: string[];
-  };
+  buildCss: (a: { css: string; classes: string[] }) => CssCompilerResult;
 
   getDocumentColors: (a: {
     uri: string;
@@ -379,7 +373,7 @@ async function init() {
   self.addEventListener<'message'>('message', async event => {
     const { type, mirrorModels, ...payload } = event.data;
     if (!type) {
-      console.log(payload);
+      console.log('Unknown payload:', payload);
       return;
     }
     if (!(type in workerImpl)) {

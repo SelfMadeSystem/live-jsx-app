@@ -1,4 +1,5 @@
 import type * as m from 'monaco-editor';
+import { CssCompilerResult } from '../compiler/parseCss';
 import { tailwindcssData } from './cssData';
 import type {
   RealTailwindcssWorker,
@@ -62,7 +63,6 @@ async function callWorker<T extends keyof TailwindcssWorkerWithMirrorModel>(
 ): Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>> {
   return new Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>>(
     resolve => {
-      console.log('callWorker', type, payload);
       const worker = getWorker();
       worker.addEventListener('message', function doStuff(event) {
         if (event.data.type === type) {
@@ -117,7 +117,10 @@ export class TailwindHandler {
         languages,
         createCompletionItemProvider(),
       ),
-      monaco.languages.registerColorProvider(languages, createColorProvider(monaco)),
+      monaco.languages.registerColorProvider(
+        languages,
+        createColorProvider(monaco),
+      ),
       monaco.languages.registerHoverProvider(languages, createHoverProvider()),
       monaco.languages.registerCodeActionProvider(
         languages,
@@ -142,7 +145,10 @@ export class TailwindHandler {
     };
   }
 
-  public async buildCss(css: string, classes: string[]) {
+  public async buildCss(
+    css: string,
+    classes: string[],
+  ): Promise<CssCompilerResult> {
     if (
       this.previousCss === css &&
       this.previousClasses.every(c => classes.includes(c))
@@ -163,12 +169,6 @@ function createCompletionItemProvider(): m.languages.CompletionItemProvider {
     },
 
     async provideCompletionItems(model, position, context) {
-      console.log(
-        'provideCompletionItems',
-        model.uri.toString(),
-        position,
-        context,
-      );
       const completionList = await callWorker('doComplete', {
         uri: model.uri.toString(),
         languageId: model.getLanguageId(),
@@ -182,7 +182,6 @@ function createCompletionItemProvider(): m.languages.CompletionItemProvider {
           },
         ],
       });
-      console.log('2');
 
       if (!completionList) {
         return;
@@ -209,11 +208,11 @@ const editableColorRegex = new RegExp(
 function colorValueToHex(value: number): string {
   return Math.round(value * 255)
     .toString(16)
-    .padStart(2, '0')
+    .padStart(2, '0');
 }
 
-const sheet = new CSSStyleSheet()
-document.adoptedStyleSheets.push(sheet)
+const sheet = new CSSStyleSheet();
+document.adoptedStyleSheets.push(sheet);
 
 function createColorClass(color: m.languages.IColor): string {
   const hex = `${colorValueToHex(color.red)}${colorValueToHex(color.green)}${colorValueToHex(
@@ -230,12 +229,14 @@ function createColorClass(color: m.languages.IColor): string {
   return className;
 }
 
-function createColorProvider(monaco: typeof m): m.languages.DocumentColorProvider {
+function createColorProvider(
+  monaco: typeof m,
+): m.languages.DocumentColorProvider {
   const modelMap = new WeakMap<m.editor.ITextModel, string[]>();
 
-  monaco.editor.onWillDisposeModel((model) => {
-    modelMap.delete(model)
-  })
+  monaco.editor.onWillDisposeModel(model => {
+    modelMap.delete(model);
+  });
 
   return {
     async provideDocumentColors(model) {

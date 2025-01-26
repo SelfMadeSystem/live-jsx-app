@@ -1,5 +1,6 @@
 import App from './App.tsx';
 import './index.css';
+import { MonacoProvider } from './monaco/MonacoProvider.tsx';
 import { StrictMode } from 'react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -8,6 +9,8 @@ window.React = React;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <MonacoProvider>
+      <App />
+    </MonacoProvider>
   </StrictMode>,
 );

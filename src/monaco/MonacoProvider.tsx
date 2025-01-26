@@ -5,28 +5,26 @@ import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
-import { getTailwindWorker, TailwindHandler } from '../tailwind/TailwindHandler';
+import {
+  CompilerResult,
+  defaultCompilerResult,
+} from '../compiler/compilerResult';
+import {
+  TailwindHandler,
+  getTailwindWorker,
+} from '../tailwind/TailwindHandler';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import { useEffect, useRef, useState } from 'react';
 
-export function MonacoProvider({
-  classList,
-  children,
-}: {
-  classList: Set<string>;
-  children: React.ReactNode;
-}) {
+export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
   const [tailwindcss, setTailwindcss] = useState<TailwindHandler | null>(null);
   const [tailwindEnabled, _setTailwindEnabled] = useState(true);
-  const classListRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    classListRef.current = Array.from(classList);
-  }, [classList]);
+  const compilerResultRef = useRef<CompilerResult>(defaultCompilerResult);
+  const [compilerResult, _setCompilerResult] = useState(defaultCompilerResult);
 
   async function setTailwindEnabled(enabled: boolean) {
     _setTailwindEnabled(enabled);
@@ -42,6 +40,11 @@ export function MonacoProvider({
       // monaco.languages.css.cssDefaults.setOptions({});
       // if (tailwindcss) tailwindcss?.dispose();
     }
+  }
+
+  function setCompilerResult(result: CompilerResult) {
+    _setCompilerResult(result);
+    compilerResultRef.current = result;
   }
 
   const initted = useRef(false);
@@ -201,17 +204,19 @@ export function MonacoProvider({
           if (isWithinRulesetDefinition()) return;
 
           const suggestions =
-            classListRef.current.map<m.languages.CompletionItem>(className => ({
-              label: `.${className}`,
-              kind: monaco.languages.CompletionItemKind.Class,
-              insertText: `.${className}`,
-              range: new monaco.Range(
-                position.lineNumber,
-                position.column - 1,
-                position.lineNumber,
-                position.column,
-              ),
-            }));
+            compilerResultRef.current.classes.map<m.languages.CompletionItem>(
+              className => ({
+                label: `.${className}`,
+                kind: monaco.languages.CompletionItemKind.Class,
+                insertText: `.${className}`,
+                range: new monaco.Range(
+                  position.lineNumber,
+                  position.column - 1,
+                  position.lineNumber,
+                  position.column,
+                ),
+              }),
+            );
 
           return { suggestions };
         },
@@ -230,7 +235,9 @@ export function MonacoProvider({
         tailwindcss,
         tailwindEnabled,
         setTailwindEnabled,
-        classList,
+        compilerResultRef,
+        compilerResult,
+        setCompilerResult,
       }}
     >
       {children}
