@@ -117,7 +117,7 @@ export class TailwindHandler {
         languages,
         createCompletionItemProvider(),
       ),
-      monaco.languages.registerColorProvider(languages, createColorProvider()),
+      monaco.languages.registerColorProvider(languages, createColorProvider(monaco)),
       monaco.languages.registerHoverProvider(languages, createHoverProvider()),
       monaco.languages.registerCodeActionProvider(
         languages,
@@ -202,7 +202,41 @@ function createCompletionItemProvider(): m.languages.CompletionItemProvider {
   };
 }
 
-function createColorProvider(): m.languages.DocumentColorProvider {
+const editableColorRegex = new RegExp(
+  `-\\[(${colorNames.join('|')}|((?:#|rgba?\\(|hsla?\\())[^\\]]+)\\]$`,
+);
+
+function colorValueToHex(value: number): string {
+  return Math.round(value * 255)
+    .toString(16)
+    .padStart(2, '0')
+}
+
+const sheet = new CSSStyleSheet()
+document.adoptedStyleSheets.push(sheet)
+
+function createColorClass(color: m.languages.IColor): string {
+  const hex = `${colorValueToHex(color.red)}${colorValueToHex(color.green)}${colorValueToHex(
+    color.blue,
+  )}`;
+  const className = `tailwindcss-color-decoration-${hex}`;
+  const selector = `.${className}`;
+  for (const rule of sheet.cssRules) {
+    if ((rule as CSSStyleRule).selectorText === selector) {
+      return className;
+    }
+  }
+  sheet.insertRule(`${selector}{background-color:#${hex}}`);
+  return className;
+}
+
+function createColorProvider(monaco: typeof m): m.languages.DocumentColorProvider {
+  const modelMap = new WeakMap<m.editor.ITextModel, string[]>();
+
+  monaco.editor.onWillDisposeModel((model) => {
+    modelMap.delete(model)
+  })
+
   return {
     async provideDocumentColors(model) {
       const colors = await callWorker('getDocumentColors', {
@@ -217,7 +251,35 @@ function createColorProvider(): m.languages.DocumentColorProvider {
         ],
       });
 
-      return colors?.map(toColorInformation);
+      const editableColors: m.languages.IColorInformation[] = [];
+      const nonEditableColors: m.editor.IModelDeltaDecoration[] = [];
+      if (colors) {
+        for (const lsColor of colors) {
+          const monacoColor = toColorInformation(lsColor);
+          const text = model.getValueInRange(monacoColor.range);
+          if (editableColorRegex.test(text)) {
+            editableColors.push(monacoColor);
+          } else {
+            nonEditableColors.push({
+              range: monacoColor.range,
+              options: {
+                before: {
+                  content: '\u00A0',
+                  inlineClassName: `${createColorClass(monacoColor.color)} colorpicker-color-decoration`,
+                  inlineClassNameAffectsLetterSpacing: true,
+                },
+              },
+            });
+          }
+        }
+      }
+
+      modelMap.set(
+        model,
+        model.deltaDecorations(modelMap.get(model) ?? [], nonEditableColors),
+      );
+
+      return editableColors;
     },
 
     provideColorPresentations(model, colorInformation) {
