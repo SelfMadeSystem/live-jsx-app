@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ctrl/tinycolor": "^4.1.0",
     "@monaco-editor/loader": "^1.4.0",
     "@swc/wasm-web": "^1.10.9",
     "@tailwindcss/language-service": "^0.14.1",

@@ -1,6 +1,6 @@
 import type * as m from 'monaco-editor';
-import { createContext } from 'react';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
+import { createContext } from 'react';
 
 export const MonacoContext = createContext<{
   monaco: typeof m | null;

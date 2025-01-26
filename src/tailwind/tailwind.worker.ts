@@ -13,7 +13,9 @@ import {
   // type EditorState,
   // doCodeActions,
   doComplete,
+  doHover,
   getColor,
+  getDocumentColors,
   // doHover,
   // doValidate,
   // getColor,
@@ -80,21 +82,26 @@ export interface TailwindcssWorker {
     uri: string;
     languageId: string;
     position: Position;
-  }) => Hover | undefined;
+  }) => Promise<Hover | undefined>;
 
   doValidate: (a: {
     uri: string;
     languageId: string;
-  }) => AugmentedDiagnostic[] | undefined;
+  }) => Promise<AugmentedDiagnostic[] | undefined>;
 
-  buildClasses: (a: { classes: string[] }) => string;
-
-  buildCss: (a: { css: string; classes: string[] }) => Promise<string>;
+  buildCss: (a: { css: string; classes: string[] }) => Promise<{
+    css: string;
+    tailwindClasses: {
+      className: string;
+      css: string;
+    }[];
+    notTailwindClasses: string[];
+  }>;
 
   getDocumentColors: (a: {
     uri: string;
     languageId: string;
-  }) => ColorInformation[] | undefined;
+  }) => Promise<ColorInformation[] | undefined>;
 
   resolveCompletionItem: (a: {
     item: CompletionItem;
@@ -118,7 +125,7 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
     this.mirrorModels = models;
   }
 
-  getState(): State {
+  async getState(): Promise<State> {
     if (!designSystem) {
       throw new Error('Design system is not initialized');
     }
@@ -177,7 +184,7 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
       } as Partial<EditorState> as EditorState,
       designSystem,
       separator: ':',
-      
+      blocklist: [],
     };
 
     state.classList = designSystem.getClassList().map(className => [
@@ -231,7 +238,7 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
     throw new Error('Method not implemented.');
   }
 
-  doComplete({
+  async doComplete({
     uri,
     languageId,
     position,
@@ -243,71 +250,93 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
     context: CompletionContext;
   }): Promise<CompletionList | undefined> {
     return doComplete(
-      this.getState(),
+      await this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
       position,
       context,
     );
   }
 
-  doHover(a: {
+  async doHover({
+    uri,
+    languageId,
+    position,
+  }: {
     uri: string;
     languageId: string;
     position: Position;
-  }): Hover | undefined {
-    throw new Error('Method not implemented.');
+  }) {
+    return doHover(
+      await this.getState(),
+      this.getDocument(uri, languageId, this.getModel(uri)!),
+      position,
+    );
   }
 
-  doValidate(a: {
+  async doValidate(a: {
     uri: string;
     languageId: string;
-  }): AugmentedDiagnostic[] | undefined {
+  }): Promise<never> {
     throw new Error('Method not implemented.');
   }
 
-  getDocumentColors(a: {
+  async getDocumentColors({
+    uri,
+    languageId,
+  }: {
     uri: string;
     languageId: string;
-  }): ColorInformation[] | undefined {
-    throw new Error('Method not implemented.');
+  }): Promise<ColorInformation[] | undefined> {
+    return getDocumentColors(
+      await this.getState(),
+      this.getDocument(uri, languageId, this.getModel(uri)!),
+    );
   }
 
-  resolveCompletionItem({
+  async resolveCompletionItem({
     item,
   }: {
     item: CompletionItem;
   }): Promise<CompletionItem> {
     return resolveCompletionItem(
-      this.getState(),
+      await this.getState(),
       item as VSCompletionItem,
     ) as Promise<CompletionItem>;
   }
 
-  buildClasses({ classes }: { classes: string[] }): string {
+  async buildCss({ css, classes }: { css: string; classes: string[] }) {
     if (!compiler) {
       throw new Error('Tailwind CSS compiler is not initialized');
     }
-    return compiler.build(classes);
-  }
-
-  async buildCss({
-    css,
-    classes,
-  }: {
-    css: string;
-    classes: string[];
-  }): Promise<string> {
-    if (!compiler) {
-      throw new Error('Tailwind CSS compiler is not initialized');
+    if (css !== previousCss) {
+      compiler = await tailwindcss.compile(css, compileOptions);
+      loadDesignSystem(css, compileOptions).then(ds => {
+        designSystem = ds;
+      });
+      previousCss = css;
     }
-    compiler = await tailwindcss.compile(css, compileOptions);
-    loadDesignSystem(css, compileOptions).then(ds => {
-      designSystem = ds;
-    });
-    return this.buildClasses({ classes });
+    const builtCss = compiler.build(classes);
+    if (designSystem) {
+      const candidatesCss = designSystem.candidatesToCss(classes);
+      const tailwindClasses = [];
+      const notTailwindClasses = [];
+      for (let i = 0; i < candidatesCss.length; i++) {
+        if (candidatesCss[i] === null) {
+          notTailwindClasses.push(classes[i]);
+        } else {
+          tailwindClasses.push({
+            className: classes[i],
+            css: candidatesCss[i]!,
+          });
+        }
+      }
+      return { css: builtCss, tailwindClasses, notTailwindClasses };
+    }
+    return { css: builtCss, tailwindClasses: [], notTailwindClasses: classes };
   }
 }
 
+let previousCss = '';
 let compiler: Awaited<ReturnType<typeof tailwindcss.compile>> | null = null;
 let designSystem: DesignSystem | null = null;
 const workerImpl = new TailwindcssWorkerImpl();

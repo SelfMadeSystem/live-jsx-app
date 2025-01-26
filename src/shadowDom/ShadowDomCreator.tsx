@@ -170,7 +170,9 @@ ReactDOM.render(React.createElement(App), rootElement);
         Array.from(classList),
       );
 
-      const postcssRoot = postcss().process(twCss ?? css, {
+      console.log(twCss);
+
+      const postcssRoot = postcss().process(twCss?.css ?? css, {
         parser: safe,
       }).root;
       const cssProperties = findCssProperties(postcssRoot);
