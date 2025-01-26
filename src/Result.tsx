@@ -67,17 +67,30 @@ export function Result({
   return (
     <div className="flex h-full flex-col">
       <div className="flex">
-        {tabs.map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`${
-              t === tab ? 'bg-gray-200' : 'bg-gray-100'
-            } flex-1 cursor-pointer p-2 text-center`}
-          >
-            {t}
-          </button>
-        ))}
+        <button
+          onClick={() => setTab('result')}
+          className={`${
+            'result' === tab ? 'bg-gray-200' : 'bg-gray-100'
+          } flex-1 cursor-pointer p-2 text-center`}
+        >
+          Result
+        </button>
+        <button
+          onClick={() => setTab('console')}
+          className={`${
+            'console' === tab ? 'bg-gray-200' : 'bg-gray-100'
+          } flex-1 cursor-pointer p-2 text-center`}
+        >
+          Console {logs.length > 0 ? `(${logs.length})` : ''}
+        </button>
+        <button
+          onClick={() => setTab('code')}
+          className={`${
+            'code' === tab ? 'bg-gray-200' : 'bg-gray-100'
+          } flex-1 cursor-pointer p-2 text-center`}
+        >
+          Code {errors.length > 0 ? `(${errors.length})` : ''}
+        </button>
       </div>
       {tab === 'code' && codeTab}
       {tab === 'console' && consoleTab}
@@ -99,7 +112,9 @@ function CodeTab({
   warnings: string[];
   errors: string[];
 }) {
-  const [tab, setTab] = useState<'js' | 'css' | 'logs'>('js');
+  const [tab, setTab] = useState<'js' | 'css' | 'logs'>(
+    errors.length + warnings.length > 0 ? 'logs' : 'js',
+  );
 
   return (
     <div className="flex h-full w-full">
@@ -137,7 +152,7 @@ function CodeTab({
               <div className="p-2">
                 <h3>Errors</h3>
                 {errors.map((e, i) => (
-                  <div key={i} dangerouslySetInnerHTML={{ __html: e }} />
+                  <pre key={i} dangerouslySetInnerHTML={{ __html: e }} />
                 ))}
               </div>
             )}
@@ -147,7 +162,7 @@ function CodeTab({
               <div className="p-2">
                 <h3>Warnings</h3>
                 {warnings.map((w, i) => (
-                  <div key={i} dangerouslySetInnerHTML={{ __html: w }} />
+                  <pre key={i} dangerouslySetInnerHTML={{ __html: w }} />
                 ))}
               </div>
             )}
