@@ -10,6 +10,7 @@ import { fromRatio, names as namedColors } from '@ctrl/tinycolor';
 import {
   fromCompletionContext,
   fromPosition,
+  toCodeAction,
   toColorInformation,
   toCompletionList,
   toHover,
@@ -113,6 +114,10 @@ export class TailwindHandler {
       ),
       monaco.languages.registerColorProvider(languages, createColorProvider()),
       monaco.languages.registerHoverProvider(languages, createHoverProvider()),
+      monaco.languages.registerCodeActionProvider(
+        languages,
+        createCodeActionProvider(),
+      ),
     ];
 
     return {
@@ -260,7 +265,39 @@ function createHoverProvider(): m.languages.HoverProvider {
         ],
       });
 
-      return hover && toHover(hover)
-    }
-  }
+      return hover && toHover(hover);
+    },
+  };
+}
+
+function createCodeActionProvider(): m.languages.CodeActionProvider {
+  return {
+    async provideCodeActions(model, range, context) {
+      const codeActions = await callWorker('doCodeActions', {
+        uri: model.uri.toString(),
+        range: {
+          start: fromPosition(range.getStartPosition()),
+          end: fromPosition(range.getEndPosition()),
+        },
+        context,
+        languageId: model.getLanguageId(),
+        mirrorModels: [
+          {
+            uri: model.uri.toJSON(),
+            version: model.getVersionId(),
+            value: model.getValue(),
+          },
+        ],
+      });
+
+      if (codeActions) {
+        return {
+          actions: codeActions.map(toCodeAction),
+          dispose() {
+            // Do nothing
+          },
+        };
+      }
+    },
+  };
 }

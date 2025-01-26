@@ -10,6 +10,7 @@ import {
   type AugmentedDiagnostic,
   EditorState,
   State,
+  doCodeActions,
   // type EditorState,
   // doCodeActions,
   doComplete,
@@ -30,7 +31,6 @@ import theme from 'tailwindcss/theme.css?raw';
 import utilities from 'tailwindcss/utilities.css?raw';
 import {
   type CodeAction,
-  type CodeActionContext,
   type ColorInformation,
   type CompletionContext,
   type CompletionList,
@@ -51,7 +51,7 @@ type MirrorModelThing = {
 
 type Promisified<T> = {
   [P in keyof T]: T[P] extends (arg: infer A) => infer R
-    ? (arg: A) => R extends Promise<unknown> ? R : Promise<R>
+    ? (arg: A) => Promise<R>
     : T[P];
 };
 
@@ -68,7 +68,7 @@ export interface TailwindcssWorker {
     uri: string;
     languageId: string;
     range: Range;
-    context: CodeActionContext;
+    context: m.languages.CodeActionContext;
   }) => CodeAction[] | undefined;
 
   doComplete: (a: {
@@ -76,36 +76,34 @@ export interface TailwindcssWorker {
     languageId: string;
     position: Position;
     context: CompletionContext;
-  }) => Promise<CompletionList | undefined>;
+  }) => CompletionList | undefined;
 
   doHover: (a: {
     uri: string;
     languageId: string;
     position: Position;
-  }) => Promise<Hover | undefined>;
+  }) => Hover | undefined;
 
   doValidate: (a: {
     uri: string;
     languageId: string;
-  }) => Promise<AugmentedDiagnostic[] | undefined>;
+  }) => AugmentedDiagnostic[] | undefined;
 
-  buildCss: (a: { css: string; classes: string[] }) => Promise<{
+  buildCss: (a: { css: string; classes: string[] }) => {
     css: string;
     tailwindClasses: {
       className: string;
       css: string;
     }[];
     notTailwindClasses: string[];
-  }>;
+  };
 
   getDocumentColors: (a: {
     uri: string;
     languageId: string;
-  }) => Promise<ColorInformation[] | undefined>;
+  }) => ColorInformation[] | undefined;
 
-  resolveCompletionItem: (a: {
-    item: CompletionItem;
-  }) => Promise<CompletionItem>;
+  resolveCompletionItem: (a: { item: CompletionItem }) => CompletionItem;
 }
 
 export type TailwindcssWorkerWithMirrorModel =
@@ -115,7 +113,7 @@ export type RealTailwindcssWorker = Promisified<
   WithMirrorModelArg<TailwindcssWorker>
 >;
 
-class TailwindcssWorkerImpl implements TailwindcssWorker {
+class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
   // public ctx: m.worker.IWorkerContext | null = null;
   public mirrorModels: m.worker.IMirrorModel[] = [];
   private cachedState: State | null = null;
@@ -229,13 +227,31 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
     //     .find(model => String(model.uri) === uri) as m.worker.IMirrorModel;
   }
 
-  doCodeActions(a: {
+  async doCodeActions({
+    uri,
+    languageId,
+    range,
+    context,
+  }: {
     uri: string;
     languageId: string;
     range: Range;
-    context: CodeActionContext;
-  }): CodeAction[] | undefined {
-    throw new Error('Method not implemented.');
+    context: m.languages.CodeActionContext;
+  }): Promise<CodeAction[] | undefined> {
+    const textDocument = this.getDocument(uri, languageId, this.getModel(uri)!);
+    return doCodeActions(
+      await this.getState(),
+      {
+        range,
+        context: {
+          ...context,
+          only: context.only ? [context.only] : [],
+          diagnostics: [],
+        },
+        textDocument,
+      },
+      textDocument,
+    );
   }
 
   async doComplete({
@@ -273,10 +289,7 @@ class TailwindcssWorkerImpl implements TailwindcssWorker {
     );
   }
 
-  async doValidate(a: {
-    uri: string;
-    languageId: string;
-  }): Promise<never> {
+  async doValidate(a: { uri: string; languageId: string }): Promise<never> {
     throw new Error('Method not implemented.');
   }
 
