@@ -15,6 +15,7 @@ import {
   // doCodeActions,
   doComplete,
   doHover,
+  doValidate,
   getColor,
   getDocumentColors,
   // doHover,
@@ -289,8 +290,11 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     );
   }
 
-  async doValidate(a: { uri: string; languageId: string }): Promise<never> {
-    throw new Error('Method not implemented.');
+  async doValidate({ uri, languageId }: { uri: string; languageId: string }) {
+    return doValidate(
+      await this.getState(),
+      this.getDocument(uri, languageId, this.getModel(uri)!),
+    );
   }
 
   async getDocumentColors({

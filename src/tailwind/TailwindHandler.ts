@@ -14,7 +14,12 @@ import {
   toColorInformation,
   toCompletionList,
   toHover,
+  toMarkerData,
 } from 'monaco-languageserver-types';
+import {
+  MarkerDataProvider,
+  registerMarkerDataProvider,
+} from 'monaco-marker-data-provider';
 
 const colorNames = Object.values(namedColors);
 let worker: Worker | null = null;
@@ -119,6 +124,16 @@ export class TailwindHandler {
         createCodeActionProvider(),
       ),
     ];
+
+    for (const language of languages) {
+      disposables.push(
+        registerMarkerDataProvider(
+          monaco,
+          language,
+          createMarkerDataProvider(),
+        ),
+      );
+    }
 
     return {
       dispose() {
@@ -298,6 +313,27 @@ function createCodeActionProvider(): m.languages.CodeActionProvider {
           },
         };
       }
+    },
+  };
+}
+
+function createMarkerDataProvider(): MarkerDataProvider {
+  return {
+    owner: 'tailwindcss',
+    async provideMarkerData(model) {
+      const diagnostics = await callWorker('doValidate', {
+        uri: model.uri.toString(),
+        languageId: model.getLanguageId(),
+        mirrorModels: [
+          {
+            uri: model.uri.toJSON(),
+            version: model.getVersionId(),
+            value: model.getValue(),
+          },
+        ],
+      });
+
+      return diagnostics?.map(toMarkerData);
     },
   };
 }
