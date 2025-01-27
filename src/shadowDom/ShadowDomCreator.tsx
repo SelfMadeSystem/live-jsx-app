@@ -1,6 +1,6 @@
 import { usePrevious } from '../utils';
 import { CSS_PRELUDE } from './ShadowDomConsts';
-import { useEffect, useId, useRef } from 'react';
+import { createElement, useEffect, useRef } from 'react';
 import ReactDOMClient from 'react-dom/client';
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
@@ -10,7 +10,6 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const rootRef = useRef<ReactDOMClient.Root | null>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
   const shadowRoot = useRef<ShadowRoot | null>(null);
-  const elemId = useId();
 
   useEffect(() => {
     if (!previewRef.current) {
@@ -49,26 +48,15 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
 
         const url = URL.createObjectURL(blob);
 
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.textContent = /*js*/ `\
-import React from "react";
-import App from "${url}";
-
-const rootElement = window['${elemId}'];
-
-rootElement.render(React.createElement(App));
-`;
-        shadowRoot.current.appendChild(script);
-
-        signal.addEventListener('abort', () => {
-          script.remove();
-          URL.revokeObjectURL(url);
-          script.remove();
+        // Import the JS from the blob
+        import(url).then((module) => {
+          // Render the React component
+          rootRef.current?.render(createElement(module.default));
         });
 
-        // @ts-expect-error window[id] is a valid expression
-        window[elemId] = rootRef.current;
+        signal.addEventListener('abort', () => {
+          URL.revokeObjectURL(url);
+        });
       }
 
       if (cssDiff) {
@@ -85,7 +73,7 @@ rootElement.render(React.createElement(App));
     return () => {
       controller.abort();
     };
-  }, [css, js, elemId, prevJs, prevCss]);
+  }, [css, js, prevJs, prevCss]);
 
   return (
     <>
