@@ -2,7 +2,7 @@
 /// <reference types="./monaco-uri.d.ts" />
 import type * as m from 'monaco-editor';
 import * as tailwindcss from 'tailwindcss';
-import { CssCompilerResult } from '../compiler/parseCss';
+import type { CssCompilerResult } from './TailwindHandler';
 import { loadDesignSystem } from './designSystem';
 import { getVariants } from './getVariants';
 import {
@@ -10,17 +10,11 @@ import {
   EditorState,
   State,
   doCodeActions,
-  // type EditorState,
-  // doCodeActions,
   doComplete,
   doHover,
   doValidate,
   getColor,
   getDocumentColors,
-  // doHover,
-  // doValidate,
-  // getColor,
-  // getDocumentColors,
   resolveCompletionItem,
 } from '@tailwindcss/language-service';
 import { DesignSystem } from '@tailwindcss/language-service/dist/util/v4';
