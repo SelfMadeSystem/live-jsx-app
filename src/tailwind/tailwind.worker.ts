@@ -173,6 +173,10 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
             },
           };
         },
+        async getDocumentSymbols(uri) {
+          // Just needed so tailwind doesn't crash. We don't actually care about this.
+          return [];
+        },
         // This option takes some properties that we don’t have nor need.
       } as Partial<EditorState> as EditorState,
       designSystem,
