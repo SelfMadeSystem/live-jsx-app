@@ -62,8 +62,6 @@ rootElement.render(React.createElement(App));
         shadowRoot.current.appendChild(script);
 
         signal.addEventListener('abort', () => {
-          // // @ts-expect-error window[id + '-root'] is a valid expression
-          // window[randomId].unmount();
           script.remove();
           URL.revokeObjectURL(url);
           script.remove();
