@@ -108,7 +108,7 @@ export default function App() {
       setRight(parentRef.current.offsetWidth * (1 - w) - lineWidth / 2);
 
       hPercentRef.current = h;
-      setHeight(window.innerHeight * h);
+      setHeight(window.innerHeight * h - lineWidth);
       resizeCbRef.current();
     }
   }

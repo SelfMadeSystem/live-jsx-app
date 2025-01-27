@@ -63,8 +63,8 @@ export function MonacoEditors({
     <MonacoEditorsContext.Provider
       value={{ editor, models, addModel, removeModel }}
     >
-      <div className="flex h-full flex-col">
-        <div className="flex w-full flex-row bg-[#1e1e1e] text-white">
+      <div className="flex h-full flex-col bg-[#1e1e1e]">
+        <div className="flex w-full flex-row text-white">
           {models.map(model => (
             <button
               className={`${model === currentModel ? 'bg-gray-800' : ''} cursor-pointer px-4 py-2`}

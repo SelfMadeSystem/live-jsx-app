@@ -253,7 +253,7 @@ function CodeTab({
 
 function ResultTab({ js, css }: { js: string; css: string }) {
   return (
-    <div className="flex h-full flex-col bg-gray-100 p-2">
+    <div className="flex h-full flex-col bg-[#212121] p-2">
       <ShadowDomCreator js={js} css={css} />
     </div>
   );
