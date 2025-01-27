@@ -163,7 +163,7 @@ export class TailwindHandler {
   ): Promise<CssCompilerResult> {
     if (
       this.previousCss === css &&
-      this.previousClasses.every(c => classes.includes(c))
+      classes.every(c => this.previousClasses.includes(c))
     ) {
       return this.previousBuildCss;
     }

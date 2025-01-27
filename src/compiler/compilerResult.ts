@@ -117,7 +117,7 @@ export async function compile(
     if (
       css !== previousResult.css ||
       previousResult.allClasses.length !== result.allClasses.length ||
-      previousResult.allClasses.some(c => !result.allClasses.includes(c))
+      result.allClasses.some(c => !previousResult.allClasses.includes(c))
     ) {
       const compiledCss = await compileCss(css, result.allClasses, {
         tailwindHandler,
