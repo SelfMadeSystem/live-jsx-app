@@ -41,6 +41,8 @@ export default defineConfig({
         main: 'index.html',
         react: 'public/react.js',
         'react-dom': 'public/react-dom.js',
+        'react-dom-client': 'public/react-dom-client.js',
+        'react-jsx-runtime': 'public/react-jsx-runtime.js',
       },
       output: {
         format: 'es',
