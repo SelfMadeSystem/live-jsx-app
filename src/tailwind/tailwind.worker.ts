@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /// <reference types="vite/client" />
 /// <reference types="./monaco-uri.d.ts" />
 import type * as m from 'monaco-editor';
 import * as tailwindcss from 'tailwindcss';
 import { CssCompilerResult } from '../compiler/parseCss';
-import { log } from '../utils';
 import { loadDesignSystem } from './designSystem';
 import { getVariants } from './getVariants';
 import {
@@ -173,7 +171,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
             },
           };
         },
-        async getDocumentSymbols(uri) {
+        async getDocumentSymbols() {
           // Just needed so tailwind doesn't crash. We don't actually care about this.
           return [];
         },
