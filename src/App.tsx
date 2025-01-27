@@ -6,16 +6,21 @@ import { MonacoEditor } from './monaco/MonacoEditor';
 import { MonacoEditors } from './monaco/MonacoEditors';
 import initSwc from '@swc/wasm-web';
 import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
-import type { Message } from 'console-feed/lib/definitions/Component';
+import { Hook, Unhook } from 'console-feed';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 let swcStarted = false;
 let swcInitialized = false;
 
 export default function App() {
-  const { compilerResult, setCompilerResult, compilerResultRef, tailwindcss } =
-    useContext(MonacoContext);
-  const [logs, setLogs] = useState<Message[]>([]);
+  const {
+    compilerResult,
+    setCompilerResult,
+    compilerResultRef,
+    tailwindcss,
+    clearLogs,
+    setLogs,
+  } = useContext(MonacoContext);
   const parentRef = useRef<HTMLDivElement>(null);
   const lineWidth = 4;
   const hPercentRef = useRef(1);
@@ -45,6 +50,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const hookedConsole = Hook(
+      window.console,
+      // @ts-expect-error console-feed types are inconsistent
+      log => setLogs(currLogs => [...currLogs, log]),
+      false,
+    );
+    return () => {
+      Unhook(hookedConsole);
+    };
+  }, [setLogs]);
+
+  useEffect(() => {
     if (!initialized || twInitialized || !tailwindcss) {
       return;
     }
@@ -56,9 +73,9 @@ export default function App() {
       tailwindHandler: tailwindcss,
     }).then(newResult => {
       setCompilerResult(newResult);
-      setLogs([]);
     });
   }, [
+    clearLogs,
     compilerResult,
     initialized,
     setCompilerResult,
@@ -76,6 +93,7 @@ export default function App() {
     }
 
     abortControllerRef.current = new AbortController();
+    const prevResult = compilerResultRef.current;
 
     const newResult = await compile(
       tsx ?? compilerResultRef.current.tsx,
@@ -98,7 +116,10 @@ export default function App() {
     }
 
     setCompilerResult(newResult);
-    setLogs([]);
+
+    if (prevResult.transformedJs !== newResult.transformedJs) {
+      clearLogs();
+    }
   }
 
   function resetSize(w = wPercentRef.current, h = hPercentRef.current) {
@@ -170,7 +191,7 @@ export default function App() {
           }}
         />
         <div className="flex flex-col" style={{ width: right }}>
-          <Result logs={logs} setLogs={setLogs} />
+          <Result />
         </div>
       </div>
       <div

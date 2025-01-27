@@ -18,6 +18,7 @@ import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import { useEffect, useRef, useState } from 'react';
+import { Message } from 'console-feed/lib/definitions/Component';
 
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
@@ -25,6 +26,7 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [tailwindEnabled, _setTailwindEnabled] = useState(true);
   const compilerResultRef = useRef<CompilerResult>(defaultCompilerResult);
   const [compilerResult, _setCompilerResult] = useState(defaultCompilerResult);
+  const [logs, setLogs] = useState<Message[]>([]);
 
   async function setTailwindEnabled(enabled: boolean) {
     _setTailwindEnabled(enabled);
@@ -45,6 +47,10 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
   function setCompilerResult(result: CompilerResult) {
     _setCompilerResult(result);
     compilerResultRef.current = result;
+  }
+
+  function clearLogs() {
+    setLogs([]);
   }
 
   const initted = useRef(false);
@@ -238,6 +244,9 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
         compilerResultRef,
         compilerResult,
         setCompilerResult,
+        logs,
+        setLogs,
+        clearLogs,
       }}
     >
       {children}

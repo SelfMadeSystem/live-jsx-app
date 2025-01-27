@@ -2,11 +2,10 @@ import { Icons } from './constants';
 import { MonacoContext } from './monaco/MonacoContext';
 import { ShadowDomCreator } from './shadowDom/ShadowDomCreator';
 import AnsiToHtml from 'ansi-to-html';
-import { Console, Hook, Unhook } from 'console-feed';
-import type { Message } from 'console-feed/lib/definitions/Component';
+import { Console } from 'console-feed';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 
 const TabButton = ({
   isActive,
@@ -23,7 +22,7 @@ const TabButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={`group relative flex flex-1 items-center justify-center gap-2.5 p-3 transition-all duration-200 ease-in-out hover:bg-zinc-800/80 ${
+    className={`group relative flex flex-1 cursor-pointer items-center justify-center gap-2.5 p-3 transition-all duration-200 ease-in-out hover:bg-zinc-800/80 ${
       isActive
         ? 'bg-zinc-800 text-white after:absolute after:right-0 after:bottom-0 after:left-0 after:h-0.5 after:rounded-full after:bg-white'
         : 'bg-black text-zinc-400 hover:text-white'
@@ -58,7 +57,7 @@ const SubTabButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={`group relative flex items-center justify-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ease-in-out hover:bg-zinc-700/50 ${
+    className={`group relative flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ease-in-out hover:bg-zinc-700/50 ${
       isActive ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
     } `}
   >
@@ -77,14 +76,8 @@ const tabs = ['result', 'console', 'code'] as const;
 
 type Tab = (typeof tabs)[number];
 
-export function Result({
-  logs,
-  setLogs,
-}: {
-  logs: Message[];
-  setLogs: React.Dispatch<React.SetStateAction<Message[]>>;
-}) {
-  const { compilerResult } = useContext(MonacoContext);
+export function Result() {
+  const { compilerResult, logs, clearLogs } = useContext(MonacoContext);
   const { builtJs, builtCss, errors, warnings, transformedCss, transformedJs } =
     compilerResult;
   const [tab, setTab] = useState<Tab>(tabs[0]);
@@ -97,18 +90,6 @@ export function Result({
     language: 'css',
   }).value;
 
-  useEffect(() => {
-    const hookedConsole = Hook(
-      window.console,
-      // @ts-expect-error console-feed types are inconsistent
-      log => setLogs(currLogs => [...currLogs, log]),
-      false,
-    );
-    return () => {
-      Unhook(hookedConsole);
-    };
-  }, [setLogs]);
-
   const codeTab = (
     <CodeTab
       js={highlightJs}
@@ -119,11 +100,19 @@ export function Result({
   );
 
   const consoleTab = (
-    <div className="bg-gray-900 text-white">
+    <div>
       {logs.length === 0 ? (
         <div className="p-2">No logs</div>
       ) : (
-        <Console logs={logs} variant="dark" />
+        <>
+          <button
+            onClick={clearLogs}
+            className="cursor-pointer p-2 text-xs font-medium text-red-400 hover:text-red-500"
+          >
+            Clear
+          </button>
+          <Console logs={logs} variant="dark" />
+        </>
       )}
     </div>
   );
