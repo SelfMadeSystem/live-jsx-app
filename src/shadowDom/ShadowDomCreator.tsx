@@ -1,8 +1,11 @@
+import { usePrevious } from '../utils';
 import { CSS_PRELUDE } from './ShadowDomConsts';
 import { useEffect, useId, useRef } from 'react';
 import ReactDOMClient from 'react-dom/client';
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
+  const prevCss = usePrevious(css);
+  const prevJs = usePrevious(js);
   const previewRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<ReactDOMClient.Root | null>(null);
   const styleRef = useRef<HTMLStyleElement | null>(null);
@@ -24,6 +27,8 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       if (!previewRef.current) {
         return;
       }
+      const jsDiff = js !== prevJs;
+      const cssDiff = css !== prevCss;
       // Create the shadow root if it doesn't exist
       if (!shadowRoot.current) {
         shadowRoot.current = previewRef.current.attachShadow({ mode: 'open' });
@@ -33,15 +38,20 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         rootRef.current = ReactDOMClient.createRoot(shadowRoot.current);
       }
 
-      // Create a blob to load the JS from
-      const data = new TextEncoder().encode(js);
-      const blob = new Blob([data], { type: 'application/javascript' });
+      if (!jsDiff && !cssDiff) {
+        return;
+      }
 
-      const url = URL.createObjectURL(blob);
+      if (jsDiff) {
+        // Create a blob to load the JS from
+        const data = new TextEncoder().encode(js);
+        const blob = new Blob([data], { type: 'application/javascript' });
 
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.textContent = /*js*/ `\
+        const url = URL.createObjectURL(blob);
+
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.textContent = /*js*/ `\
 import React from "react";
 import App from "${url}";
 
@@ -49,24 +59,27 @@ const rootElement = window['${elemId}'];
 
 rootElement.render(React.createElement(App));
 `;
-      shadowRoot.current.appendChild(script);
+        shadowRoot.current.appendChild(script);
 
-      // Create a style element and append it to the shadow root
-      const style = styleRef.current ?? document.createElement('style');
-      style.textContent = CSS_PRELUDE + css;
-      if (!styleRef.current || !shadowRoot.current.parentElement)
-        shadowRoot.current.appendChild((styleRef.current = style));
+        signal.addEventListener('abort', () => {
+          // // @ts-expect-error window[id + '-root'] is a valid expression
+          // window[randomId].unmount();
+          script.remove();
+          URL.revokeObjectURL(url);
+          script.remove();
+        });
 
-      signal.addEventListener('abort', () => {
-        // // @ts-expect-error window[id + '-root'] is a valid expression
-        // window[randomId].unmount();
-        script.remove();
-        URL.revokeObjectURL(url);
-        script.remove();
-      });
+        // @ts-expect-error window[id] is a valid expression
+        window[elemId] = rootRef.current;
+      }
 
-      // @ts-expect-error window[id] is a valid expression
-      window[elemId] = rootRef.current;
+      if (cssDiff) {
+        // Create a style element and append it to the shadow root
+        const style = styleRef.current ?? document.createElement('style');
+        style.textContent = CSS_PRELUDE + css;
+        if (!styleRef.current || !shadowRoot.current.parentElement)
+          shadowRoot.current.appendChild((styleRef.current = style));
+      }
     }
 
     renderDom(js, css);
@@ -74,7 +87,7 @@ rootElement.render(React.createElement(App));
     return () => {
       controller.abort();
     };
-  }, [css, js, elemId]);
+  }, [css, js, elemId, prevJs, prevCss]);
 
   return (
     <>
