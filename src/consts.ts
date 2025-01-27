@@ -6,7 +6,7 @@ export default function App() {
   const geTen = count >= 10;
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gray-100"
+    <div className="flex flex-col items-center justify-center"
       style={{
         '--n': count - 9
       } as React.CSSProperties}>

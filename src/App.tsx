@@ -108,7 +108,7 @@ export default function App() {
       setRight(parentRef.current.offsetWidth * (1 - w) - lineWidth / 2);
 
       hPercentRef.current = h;
-      setHeight(window.innerHeight * h);
+      setHeight(window.innerHeight * h - lineWidth);
       resizeCbRef.current();
     }
   }
@@ -159,7 +159,7 @@ export default function App() {
           </MonacoEditors>
         </div>
         <div
-          className="relative z-10 cursor-col-resize bg-gray-200 outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
+          className="outline-wihte relative z-10 cursor-col-resize bg-[#18181B] outline-0 outline-white transition-all hover:outline-4 active:outline-4"
           style={{
             width: lineWidth,
           }}
@@ -170,12 +170,11 @@ export default function App() {
           }}
         />
         <div className="flex flex-col" style={{ width: right }}>
-          <div className="text-center text-lg font-bold">Output:</div>
           <Result logs={logs} setLogs={setLogs} />
         </div>
       </div>
       <div
-        className="relative z-20 cursor-row-resize bg-gray-200 outline-0 outline-blue-600 transition-all hover:outline-4 active:outline-4"
+        className="relative z-20 cursor-row-resize bg-[#18181B] outline-0 outline-white transition-all hover:outline-4 active:outline-4"
         style={{
           height: lineWidth,
         }}
