@@ -147,7 +147,7 @@ export default function App() {
   }
 
   function onHMouseMove(e: MouseEvent) {
-    const p = e.clientY / window.innerHeight;
+    const p = e.clientY / (window.innerHeight - lineWidth);
     resetSize(undefined, p);
   }
 
