@@ -49,7 +49,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         const url = URL.createObjectURL(blob);
 
         // Import the JS from the blob
-        import(url).then((module) => {
+        import(/* @vite-ignore */ url).then((module) => {
           // Render the React component
           rootRef.current?.render(createElement(module.default));
         });
