@@ -24,6 +24,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '/web_modules/react.js': 'react',
+      '/web_modules/react-jsx-runtime.js': 'react/jsx-runtime',
       '/web_modules/react-dom.js': 'react-dom',
       '/web_modules/react-dom-client.js': 'react-dom/client',
       '/esm/vs': '/node_modules/monaco-editor/esm/vs',

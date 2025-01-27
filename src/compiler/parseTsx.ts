@@ -117,6 +117,11 @@ export async function compileTsx(
         decorators: true,
         dynamicImport: true,
       },
+      transform: {
+        react: {
+          runtime: 'automatic',
+        },
+      },
     },
   }).catch(e => {
     return { error: e };
