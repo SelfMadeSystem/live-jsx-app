@@ -3,9 +3,10 @@ import { MonacoContext } from './monaco/MonacoContext';
 import { ShadowDomCreator } from './shadowDom/ShadowDomCreator';
 import AnsiToHtml from 'ansi-to-html';
 import { Console } from 'console-feed';
+import { Message } from 'console-feed/lib/definitions/Component';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 const TabButton = ({
   isActive,
@@ -76,13 +77,18 @@ const tabs = ['result', 'console', 'code'] as const;
 
 type Tab = (typeof tabs)[number];
 
+function getLogErrors(logs: Message[]) {
+  return logs.filter(l => l.method === 'error').map(l => l.data.join(''));
+}
+
 export function Result() {
   const { compilerResult, logs, clearLogs } = useContext(MonacoContext);
   const { builtJs, builtCss, errors, warnings, transformedCss, transformedJs } =
     compilerResult;
   const [tab, setTab] = useState<Tab>(tabs[0]);
-  const ansiErrors = errors.map(e => ansiToHtml.toHtml(e));
-  const ansiWarnings = warnings.map(w => ansiToHtml.toHtml(w));
+  const compileErrors = errors.map(e => ansiToHtml.toHtml(e));
+  const compileWarnings = warnings.map(w => ansiToHtml.toHtml(w));
+  const errorLogs = getLogErrors(logs);
   const highlightJs = hljs.highlight(builtJs, {
     language: 'javascript',
   }).value;
@@ -94,8 +100,8 @@ export function Result() {
     <CodeTab
       js={highlightJs}
       css={highlightedCss}
-      warnings={ansiWarnings}
-      errors={ansiErrors}
+      warnings={compileWarnings}
+      errors={compileErrors}
     />
   );
 
@@ -147,7 +153,12 @@ export function Result() {
         {tab === 'code' && codeTab}
         {tab === 'console' && consoleTab}
         <div className={`h-full ${tab === 'result' ? '' : 'hidden'}`}>
-          <ResultTab js={transformedJs} css={transformedCss} />
+          <ResultTab
+            js={transformedJs}
+            css={transformedCss}
+            compileErrors={compileErrors}
+            errorLogs={errorLogs}
+          />
         </div>
       </div>
     </div>
@@ -240,10 +251,86 @@ function CodeTab({
   );
 }
 
-function ResultTab({ js, css }: { js: string; css: string }) {
+function ResultTab({
+  js,
+  css,
+  compileErrors,
+  errorLogs,
+}: {
+  js: string;
+  css: string;
+  compileErrors: string[];
+  errorLogs: string[];
+}) {
+  const errors = [...compileErrors, ...errorLogs];
+  const [showErrors, setShowErrors] = useState(false);
+  const [errorTab, setErrorTab] = useState<number>(0);
+
+  useEffect(() => {
+    setShowErrors(compileErrors.length > 0);
+    setErrorTab(0);
+  }, [compileErrors]);
+
   return (
-    <div className="flex h-full flex-col bg-[#212121] p-2">
+    <div className="relative flex h-full flex-col bg-[#212121] p-2">
       <ShadowDomCreator js={js} css={css} />
+      {errors.length > 0 && (
+        <button
+          onClick={() => setShowErrors(true)}
+          className="absolute top-2 right-2 p-2 text-xs font-medium text-red-400 hover:text-red-500"
+        >
+          {errors.length} error{errors.length > 1 ? 's' : ''}
+        </button>
+      )}
+      {errors.length > 0 && showErrors && (
+        <>
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowErrors(false)}
+          />
+          <div className="absolute top-0 right-0 left-0 m-8 overflow-hidden rounded-lg bg-black/50 p-2 text-white">
+            <div className="absolute top-0 right-0 left-0 h-2 bg-red-500" />
+            {errors.length > 1 && (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setErrorTab(t => Math.max(0, t - 1))}
+                  className="p-2 text-xs font-medium text-red-400 not-disabled:cursor-pointer not-disabled:hover:text-red-500 disabled:opacity-50"
+                  disabled={errorTab === 0}
+                >
+                  Previous
+                </button>
+                <div className="text-xs font-medium text-red-400">
+                  {errorTab + 1} / {errors.length}
+                </div>
+                <button
+                  onClick={() =>
+                    setErrorTab(t => Math.min(errors.length - 1, t + 1))
+                  }
+                  className="p-2 text-xs font-medium text-red-400 not-disabled:cursor-pointer not-disabled:hover:text-red-500 disabled:opacity-50"
+                  disabled={errorTab === errors.length - 1}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            <div className="mt-4 overflow-x-auto">
+              <pre
+                key={errorTab}
+                className={
+                  errorTab >= compileErrors.length
+                    ? 'text-wrap text-red-200'
+                    : 'text-nowrap'
+                }
+                dangerouslySetInnerHTML={{ __html: errors[errorTab] }}
+              />
+            </div>
+            <hr className="my-4 border-0 border-t-1 border-dotted border-zinc-700" />
+            <div className="mt-4 mb-2 flex justify-center">
+              Click outside or fix the errors to dismiss
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
