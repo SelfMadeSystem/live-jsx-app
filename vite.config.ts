@@ -47,7 +47,6 @@ export default defineConfig({
       output: {
         format: 'es',
         entryFileNames: '[name].js',
-        preserveModules: true,
       },
       preserveEntrySignatures: 'strict',
     },
