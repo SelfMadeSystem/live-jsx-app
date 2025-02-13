@@ -17,6 +17,7 @@ export function MonacoEditor({
   const { editor, addModel } = useContext(MonacoEditorsContext);
   const modelRef = useRef<m.editor.ITextModel | null>(null);
   const { monaco } = useContext(MonacoContext);
+  const onChangeRef = useRef(onChange);
 
   useEffect(() => {
     if (!monaco || !editor || modelRef.current) return;
@@ -27,12 +28,16 @@ export function MonacoEditor({
     if (editor.getModel() === null) editor.setModel(model);
 
     model.onDidChangeContent(() => {
-      onChange(model.getValue());
+      onChangeRef.current(model.getValue());
     });
 
     addModel(model);
     modelRef.current = model;
-  }, [addModel, editor, filename, language, monaco, onChange, value]);
+  }, [addModel, editor, filename, language, monaco, value]);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   return null;
 }
