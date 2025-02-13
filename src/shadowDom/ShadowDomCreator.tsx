@@ -49,9 +49,17 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         const url = URL.createObjectURL(blob);
 
         // Import the JS from the blob
-        import(/* @vite-ignore */ url).then((module) => {
-          // Render the React component
-          rootRef.current?.render(createElement(module.default));
+        import(/* @vite-ignore */ url).then(module => {
+          if (signal.aborted) {
+            return;
+          }
+          console.log('module', module, js);
+          try {
+            // Render the React component
+            rootRef.current?.render(createElement(module.default));
+          } catch (e) {
+            console.error(e);
+          }
         });
 
         signal.addEventListener('abort', () => {
