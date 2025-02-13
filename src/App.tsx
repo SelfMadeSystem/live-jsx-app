@@ -84,9 +84,11 @@ export default function App() {
   ]);
 
   async function handleChange({ tsx, css }: { tsx?: string; css?: string }) {
+    console.log(1);
     if (!initialized) {
       return;
     }
+    console.log(2);
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -111,10 +113,12 @@ export default function App() {
       return abortSymbol;
     });
 
+    console.log(3);
     if (typeof newResult === 'symbol') {
       return;
     }
 
+    console.log(4);
     setCompilerResult(newResult);
 
     if (prevResult.transformedJs !== newResult.transformedJs) {
