@@ -53,7 +53,6 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
           if (signal.aborted) {
             return;
           }
-          console.log('module', module, js);
           try {
             // Render the React component
             rootRef.current?.render(createElement(module.default));
