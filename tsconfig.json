@@ -5,5 +5,5 @@
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.worker.json" }
   ],
-  "exclude": ["public"]
+  "exclude": ["public", "node_modules", "dist"]
 }
