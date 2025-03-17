@@ -12,3 +12,16 @@ export const usePrevious = <T>(value: T): T | undefined => {
   });
   return ref.current;
 };
+
+export const debounce = <T extends unknown[]>(
+  fn: (...args: T) => void,
+  delay: number,
+) => {
+  let timeoutId: number;
+  return (...args: T) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+};
