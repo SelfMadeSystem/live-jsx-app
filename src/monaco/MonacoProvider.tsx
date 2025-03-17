@@ -23,26 +23,9 @@ import { Message } from 'console-feed/lib/definitions/Component';
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
   const [tailwindcss, setTailwindcss] = useState<TailwindHandler | null>(null);
-  const [tailwindEnabled, _setTailwindEnabled] = useState(true);
   const compilerResultRef = useRef<CompilerResult>(defaultCompilerResult);
   const [compilerResult, _setCompilerResult] = useState(defaultCompilerResult);
   const [logs, setLogs] = useState<Message[]>([]);
-
-  async function setTailwindEnabled(enabled: boolean) {
-    _setTailwindEnabled(enabled);
-    if (!monaco) return;
-    if (enabled) {
-      if (tailwindcss) return;
-      const tailwind = new TailwindHandler();
-      setTailwindcss(tailwind);
-      tailwind.configureMonaco(monaco);
-    } else {
-      if (!tailwindcss) return;
-      setTailwindcss(null);
-      // monaco.languages.css.cssDefaults.setOptions({});
-      // if (tailwindcss) tailwindcss?.dispose();
-    }
-  }
 
   function setCompilerResult(result: CompilerResult) {
     _setCompilerResult(result);
@@ -239,8 +222,6 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
       value={{
         monaco,
         tailwindcss,
-        tailwindEnabled,
-        setTailwindEnabled,
         compilerResultRef,
         compilerResult,
         setCompilerResult,

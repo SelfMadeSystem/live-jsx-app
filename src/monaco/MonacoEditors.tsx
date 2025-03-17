@@ -16,7 +16,7 @@ export function MonacoEditors({
   );
   const [models, setModels] = useState<m.editor.ITextModel[]>([]);
   const divRef = useRef<HTMLDivElement | null>(null);
-  const { monaco /* , tailwindEnabled */ } = useContext(MonacoContext);
+  const { monaco } = useContext(MonacoContext);
   const [, updateState] = useState({});
   const forceUpdate = () => updateState({});
 
