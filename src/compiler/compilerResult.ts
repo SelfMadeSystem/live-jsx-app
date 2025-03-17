@@ -9,10 +9,14 @@ import {
 export type TransformedProperty = PropertyDefinition & { original: string };
 
 export type CompilerResult = {
+  /** The new TypeScript code. */
+  newTsx: string;
   /** The original TypeScript code. */
   tsx: string;
   /** Whether the TypeScript code was successfully compiled. */
   tsxSuccess: boolean;
+  /** The new CSS code. */
+  newCss: string;
   /** The original CSS code. */
   css: string;
   /** Whether the CSS code was successfully compiled. */
@@ -40,8 +44,10 @@ export type CompilerResult = {
 };
 
 export const defaultCompilerResult: CompilerResult = {
+  newTsx: '',
   tsx: '',
   tsxSuccess: false,
+  newCss: '',
   css: '',
   cssSuccess: false,
   allClasses: [],
@@ -68,8 +74,6 @@ export type CompilerOptions = {
 export const abortSymbol = Symbol('abort');
 
 export async function compile(
-  tsx: string,
-  css: string,
   previousResult: CompilerResult,
   options: CompilerOptions,
 ): Promise<CompilerResult> {
@@ -83,6 +87,9 @@ export async function compile(
   };
 
   let isDifferent = false;
+
+  const tsx = result.newTsx;
+  const css = result.newCss;
 
   if (tsx !== previousResult.tsx) {
     const compiledTsx = await compileTsx(tsx, {

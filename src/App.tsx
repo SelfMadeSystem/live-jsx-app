@@ -69,11 +69,6 @@ export default function App() {
     // First compile after tailwind is initialized
 
     setTwInitialized(true);
-    compile(DEFAULT_TSX, DEFAULT_CSS, compilerResult, {
-      tailwindHandler: tailwindcss,
-    }).then(newResult => {
-      setCompilerResult(newResult);
-    });
   }, [
     clearLogs,
     compilerResult,
@@ -95,19 +90,23 @@ export default function App() {
     abortControllerRef.current = new AbortController();
     const prevResult = compilerResultRef.current;
 
+    if (tsx !== undefined) {
+      compilerResultRef.current.newTsx = tsx;
+    }
+    if (css !== undefined) {
+      compilerResultRef.current.newCss = css;
+    }
+
     const newResult = await compile(
-      tsx ?? compilerResultRef.current.tsx,
-      css ?? compilerResultRef.current.css,
       compilerResultRef.current,
       {
         tailwindHandler: tailwindcss,
         signal: abortControllerRef.current?.signal,
       },
     ).catch(e => {
-      if (e === abortSymbol) {
-        return abortSymbol;
+      if (e !== abortSymbol) {
+        console.error(e);
       }
-      console.error(e);
       return abortSymbol;
     });
 
