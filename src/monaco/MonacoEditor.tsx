@@ -64,9 +64,7 @@ export function MonacoEditor({
     addModel(model);
     modelRef.current = model;
 
-    if (savedModel) {
-      onChangeRef.current(model.getValue());
-    }
+    onChangeRef.current(model.getValue());
   }, [addModel, editor, filename, language, monaco, saveToLocalStorage, value]);
 
   useEffect(() => {
