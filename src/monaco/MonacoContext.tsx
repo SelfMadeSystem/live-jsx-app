@@ -15,6 +15,8 @@ export const MonacoContext = createContext<{
   logs: Message[];
   setLogs: (logs: Message[]) => void;
   clearLogs: () => void;
+  showErrors: boolean;
+  setShowErrors: (showErrors: boolean) => void;
 }>({
   monaco: null,
   tailwindcss: null,
@@ -26,4 +28,6 @@ export const MonacoContext = createContext<{
   logs: [],
   setLogs: () => {},
   clearLogs: () => {},
+  showErrors: false,
+  setShowErrors: () => {},
 });

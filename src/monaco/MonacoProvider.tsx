@@ -27,6 +27,7 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const compilerResultRef = useRef<CompilerResult>(defaultCompilerResult);
   const [compilerResult, _setCompilerResult] = useState(defaultCompilerResult);
   const [logs, setLogs] = useState<Message[]>([]);
+  const [showErrors, setShowErrors] = useState(false);
 
   function setCompilerResult(result: CompilerResult) {
     _setCompilerResult(result);
@@ -231,6 +232,8 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
         logs,
         setLogs,
         clearLogs,
+        showErrors,
+        setShowErrors,
       }}
     >
       {children}

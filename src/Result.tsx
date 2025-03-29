@@ -6,7 +6,7 @@ import { Console } from 'console-feed';
 import { Message } from 'console-feed/lib/definitions/Component';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 
 const TabButton = ({
   isActive,
@@ -86,9 +86,15 @@ export function Result() {
   const { builtJs, builtCss, errors, warnings, transformedCss, transformedJs } =
     compilerResult;
   const [tab, setTab] = useState<Tab>(tabs[0]);
-  const compileErrors = errors.map(e => ansiToHtml.toHtml(e));
-  const compileWarnings = warnings.map(w => ansiToHtml.toHtml(w));
-  const errorLogs = getLogErrors(logs);
+  const compileErrors = useMemo(
+    () => errors.map(e => ansiToHtml.toHtml(e)),
+    [errors],
+  );
+  const compileWarnings = useMemo(
+    () => warnings.map(w => ansiToHtml.toHtml(w)),
+    [warnings],
+  );
+  const errorLogs = useMemo(() => getLogErrors(logs), [logs]);
   const highlightJs = hljs.highlight(builtJs, {
     language: 'javascript',
   }).value;
@@ -263,13 +269,13 @@ function ResultTab({
   errorLogs: string[];
 }) {
   const errors = [...compileErrors, ...errorLogs];
-  const [showErrors, setShowErrors] = useState(false);
+  const { showErrors, setShowErrors } = useContext(MonacoContext);
   const [errorTab, setErrorTab] = useState<number>(0);
 
   useEffect(() => {
     setShowErrors(compileErrors.length > 0);
     setErrorTab(0);
-  }, [compileErrors]);
+  }, [compileErrors, setShowErrors]);
 
   return (
     <div className="relative flex h-full flex-col bg-[#212121] p-2">
