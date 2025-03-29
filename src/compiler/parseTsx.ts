@@ -86,6 +86,16 @@ async function replaceImports(
       if (item.type === 'ImportDeclaration') {
         const importItem = item;
         const importUrl = importItem.source.value;
+        if (
+          importUrl.startsWith('data:') ||
+          importUrl.startsWith('blob:') ||
+          importUrl.startsWith('http:') ||
+          importUrl.startsWith('https:') ||
+          importUrl.startsWith('file:')
+        ) {
+          // Don't change data, blob, http, https or file imports
+          continue;
+        }
         const module = importUrl.split('/').pop();
         if (!module) continue;
         if (module === 'react' || module === 'react-dom') {
