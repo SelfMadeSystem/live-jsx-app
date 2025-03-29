@@ -1,3 +1,4 @@
+import type * as m from 'monaco-editor';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
 import { compileTsx } from './parseTsx';
@@ -67,6 +68,12 @@ export type CompilerOptions = {
   tailwindHandler?: TailwindHandler | null;
   /** The transformer options. */
   transform?: TransformCssPropertiesOptions;
+  /** The import map to use for the compilation. */
+  importMap: Record<string, string>;
+  /** The function to set the import map. */
+  setImportMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  /** Monaco */
+  monaco: typeof m;
   /** The AbortSignal to cancel the compilation. */
   signal?: AbortSignal;
 };
@@ -93,7 +100,10 @@ export async function compile(
 
   if (tsx !== previousResult.tsx) {
     const compiledTsx = await compileTsx(tsx, {
+      importMap: options.importMap,
+      setImportMap: options.setImportMap,
       signal: options.signal,
+      monaco: options.monaco,
     });
     if ('error' in compiledTsx && compiledTsx.error) {
       result.errors.push(compiledTsx.error);

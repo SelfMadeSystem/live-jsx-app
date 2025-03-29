@@ -16,13 +16,14 @@ import {
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
+import { Message } from 'console-feed/lib/definitions/Component';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import { useEffect, useRef, useState } from 'react';
-import { Message } from 'console-feed/lib/definitions/Component';
 
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
   const [tailwindcss, setTailwindcss] = useState<TailwindHandler | null>(null);
+  const [importMap, setImportMap] = useState<Record<string, string>>({});
   const compilerResultRef = useRef<CompilerResult>(defaultCompilerResult);
   const [compilerResult, _setCompilerResult] = useState(defaultCompilerResult);
   const [logs, setLogs] = useState<Message[]>([]);
@@ -222,6 +223,8 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
       value={{
         monaco,
         tailwindcss,
+        importMap,
+        setImportMap,
         compilerResultRef,
         compilerResult,
         setCompilerResult,

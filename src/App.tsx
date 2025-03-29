@@ -15,6 +15,9 @@ let swcInitialized = false;
 export default function App() {
   const {
     compilerResult,
+    importMap,
+    setImportMap,
+    monaco,
     setCompilerResult,
     compilerResultRef,
     tailwindcss,
@@ -101,6 +104,9 @@ export default function App() {
       compilerResultRef.current,
       {
         tailwindHandler: tailwindcss,
+        importMap,
+        setImportMap,
+        monaco: monaco!,
         signal: abortControllerRef.current?.signal,
       },
     ).catch(e => {
