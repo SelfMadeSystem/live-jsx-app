@@ -273,6 +273,12 @@ function ResultTab({
   const [errorTab, setErrorTab] = useState<number>(0);
 
   useEffect(() => {
+    if (errors.length > 0 && errorTab >= errors.length) {
+      setErrorTab(0);
+    }
+  }, [errors.length, errorTab]);
+
+  useEffect(() => {
     setShowErrors(compileErrors.length > 0);
     setErrorTab(0);
   }, [compileErrors, setShowErrors]);
