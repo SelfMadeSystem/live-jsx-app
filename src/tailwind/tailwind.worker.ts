@@ -8,6 +8,7 @@ import { getVariants } from './getVariants';
 import {
   type AugmentedDiagnostic,
   EditorState,
+  Settings,
   State,
   doCodeActions,
   doComplete,
@@ -129,7 +130,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
           diagnosticRelatedInformation: true,
           itemDefaults: [],
         },
-        async getConfiguration() {
+        async getConfiguration(): Promise<Settings> {
           return {
             editor: { tabSize: 2 },
             // Default values are based on
@@ -162,6 +163,9 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
               files: {
                 exclude: [],
               },
+              classFunctions: [],
+              inspectPort: null,
+              codeLens: false,
             },
           };
         },
@@ -171,6 +175,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
         },
         // This option takes some properties that we don’t have nor need.
       } as Partial<EditorState> as EditorState,
+      features: [],
       designSystem,
       separator: ':',
       blocklist: [],
