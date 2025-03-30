@@ -16,6 +16,7 @@
     "@tailwindcss/language-service": "^0.14.12",
     "@tailwindcss/vite": "^4.0.17",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/prop-types": "^15.7.14",
     "ansi-to-html": "^0.7.2",
     "console-feed": "^3.8.0",
     "emmet-monaco-es": "^5.5.0",
