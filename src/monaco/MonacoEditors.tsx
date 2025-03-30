@@ -71,7 +71,7 @@ export function MonacoEditors({
   defaultModels,
   handleChange,
 }: {
-  resizeCbRef: React.MutableRefObject<() => void>;
+  resizeCbRef: React.RefObject<() => void>;
   defaultModels: SavedModel[];
   handleChange: (model: m.editor.ITextModel) => void;
 }) {
