@@ -1,20 +1,13 @@
 import type * as m from 'monaco-editor';
-import { debounce } from '../utils';
+import { debounce, isValidIdentifier } from '../utils';
 import { MonacoContext } from './MonacoContext';
-import { MonacoEditorsContext } from './MonacoEditorsContext';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
-
-type DefaultModel = {
-  value: string;
-  filename: string;
-  language: string;
-};
 
 type SavedModel = {
   value: string;
+  filename: string;
   language: string;
-  uri: string;
 };
 
 function getSavedModel(filename: string): SavedModel | null {
@@ -23,27 +16,54 @@ function getSavedModel(filename: string): SavedModel | null {
     const parsedModel = JSON.parse(savedModel);
     return {
       value: parsedModel.value,
+      filename: parsedModel.filename,
       language: parsedModel.language,
-      uri: parsedModel.uri,
     };
   }
   return null;
 }
 
-function modelToSavedModel(model: m.editor.ITextModel): SavedModel {
+function modelToSavedModel(
+  filename: string,
+  model: m.editor.ITextModel,
+): SavedModel {
   return {
     value: model.getValue(),
+    filename: filename,
     language: model.getLanguageId(),
-    uri: model.uri.toString(),
   };
 }
 
 function saveModelToLocalStorage(filename: string, model: m.editor.ITextModel) {
-  const modelData = modelToSavedModel(model);
-  localStorage.setItem(
-    `monacoModel-${filename}`,
-    JSON.stringify(modelData),
-  );
+  const modelData = modelToSavedModel(filename, model);
+  localStorage.setItem(`monacoModel-${filename}`, JSON.stringify(modelData));
+}
+
+function getModelListFromLocalStorage(): string[] {
+  const modelList = localStorage.getItem('monacoModelList');
+  if (modelList) {
+    const parsedModelList = JSON.parse(modelList);
+    console.log('Loading list:', parsedModelList);
+    return parsedModelList;
+  }
+  return [];
+}
+
+function saveModelListToLocalStorage(modelNames: string[]) {
+  console.log('Saving list:', modelNames);
+  localStorage.setItem('monacoModelList', JSON.stringify(modelNames));
+}
+
+function getSavedModelsFromLocalStorage(): Record<string, SavedModel> {
+  const modelList = getModelListFromLocalStorage();
+  const savedModels: Record<string, SavedModel> = {};
+  for (const filename of modelList) {
+    const savedModel = getSavedModel(filename);
+    if (savedModel) {
+      savedModels[filename] = savedModel;
+    }
+  }
+  return savedModels;
 }
 
 export function MonacoEditors({
@@ -52,7 +72,7 @@ export function MonacoEditors({
   handleChange,
 }: {
   resizeCbRef: React.MutableRefObject<() => void>;
-  defaultModels: DefaultModel[];
+  defaultModels: SavedModel[];
   handleChange: (model: m.editor.ITextModel) => void;
 }) {
   const [editor, setEditor] = useState<m.editor.IStandaloneCodeEditor | null>(
@@ -64,13 +84,34 @@ export function MonacoEditors({
   const [, updateState] = useState({});
   const forceUpdate = () => updateState({});
 
-  function addModel(model: m.editor.ITextModel) {
-    setModels(prev => [...prev, model]);
-  }
+  const addModel = useCallback(
+    (model: m.editor.ITextModel, newEditor?: m.editor.IStandaloneCodeEditor) => {
+      const filename = model.uri.path.split('/').pop()!;
+      const saveModel = debounce(() => {
+        saveModelToLocalStorage(filename, model);
+      }, 1000);
+      (editor ?? newEditor)!.onDidChangeModelContent(() => {
+        handleChange(model);
+        saveModel();
+      });
+      setModels(prev => {
+        const newModelList = [...prev, model];
+        const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
+        saveModelListToLocalStorage(modelNames);
+        return newModelList;
+      });
+    },
+    [editor, handleChange],
+  );
 
-  function removeModel(model: m.editor.ITextModel) {
-    setModels(prev => prev.filter(m => m !== model));
-  }
+  const removeModel = useCallback((model: m.editor.ITextModel) => {
+    setModels(prev => {
+      const newModelList = prev.filter(m => m !== model);
+      const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
+      saveModelListToLocalStorage(modelNames);
+      return newModelList;
+    });
+  }, []);
 
   useEffect(() => {
     if (!monaco || editor) return;
@@ -84,26 +125,25 @@ export function MonacoEditors({
     newEditor.setModel(null);
     setEditor(newEditor);
     resizeCbRef.current = () => newEditor.layout();
+    const defaultModelsRecord = defaultModels.reduce(
+      (acc, model) => {
+        acc[model.filename] = model;
+        return acc;
+      },
+      {} as Record<string, SavedModel>,
+    );
+    const models = {
+      ...defaultModelsRecord,
+      ...getSavedModelsFromLocalStorage(),
+    };
+    console.log('Loading models:', models);
 
-    for (const model of defaultModels) {
+    for (const modelName in models) {
+      const model = models[modelName];
       const { value, filename, language } = model;
-      const savedModel = getSavedModel(filename);
-      const modelUri = savedModel
-        ? monaco.Uri.parse(savedModel.uri)
-        : monaco.Uri.file(filename);
-      const newModel = monaco.editor.createModel(
-        savedModel?.value ?? value,
-        savedModel?.language ?? language,
-        modelUri,
-      );
-      const saveModel = debounce(() => {
-        saveModelToLocalStorage(filename, newModel);
-      }, 1000);
-      newEditor.onDidChangeModelContent(() => {
-        handleChange(newModel);
-        saveModel();
-      });
-      addModel(newModel);
+      const modelUri = monaco.Uri.file(filename);
+      const newModel = monaco.editor.createModel(value, language, modelUri);
+      addModel(newModel, newEditor);
       handleChange(newModel);
       if (newEditor.getModel() === null) newEditor.setModel(newModel);
     }
@@ -127,80 +167,76 @@ export function MonacoEditors({
   const currentModel = editor?.getModel();
 
   return (
-    <MonacoEditorsContext.Provider
-      value={{ editor, models, addModel, removeModel }}
-    >
-      <div className="flex h-full flex-col bg-[#1e1e1e]">
-        <div className="flex w-full flex-row overflow-x-auto overflow-y-hidden text-white">
-          {models.map(model => (
-            <div
-              key={model.uri.toString()}
-              className={`flex items-center pr-2 hover:bg-[#252525] ${model === currentModel ? '!bg-gray-800' : ''}`}
+    <div className="flex h-full flex-col bg-[#1e1e1e]">
+      <div className="flex w-full flex-row overflow-x-auto overflow-y-hidden text-white">
+        {models.map(model => (
+          <div
+            key={model.uri.toString()}
+            className={`flex items-center pr-2 hover:bg-[#252525] ${model === currentModel ? '!bg-gray-800' : ''}`}
+          >
+            <button
+              className="cursor-pointer py-2 pl-2"
+              onClick={() => {
+                editor?.setModel(model);
+                forceUpdate();
+              }}
             >
+              {model.uri.path.split('/').pop()}
+            </button>
+            {model.uri.path.split('/').pop() === 'main.tsx' ||
+            model.uri.path.split('/').pop() === 'main.css' ? null : (
               <button
-                className="cursor-pointer py-2 pl-2"
+                className="ml-2 flex cursor-pointer justify-center rounded-full px-1 py-1 hover:bg-[#fff1]"
                 onClick={() => {
-                  editor?.setModel(model);
-                  forceUpdate();
+                  if (!confirm('Are you sure you want to delete this file?'))
+                    return;
+                  if (model === currentModel) editor?.setModel(null);
+                  removeModel(model);
+                  model.dispose();
                 }}
               >
-                {model.uri.path.split('/').pop()}
-              </button>
-              {model.uri.path.split('/').pop() === 'main.tsx' ||
-              model.uri.path.split('/').pop() === 'main.css' ? null : (
-                <button
-                  className="ml-2 flex cursor-pointer justify-center rounded-full px-1 py-1 hover:bg-[#fff1]"
-                  onClick={() => {
-                    if (!confirm('Are you sure you want to delete this file?'))
-                      return;
-                    if (model === currentModel) editor?.setModel(null);
-                    removeModel(model);
-                    model.dispose();
-                  }}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M13.46,12L19,17.54V19H17.54L12,13.46L6.46,19H5V17.54L10.54,12L5,6.46V5H6.46L12,10.54L17.54,5H19V6.46L13.46,12Z" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-          {/* <button // TODO: Add multiple file support
-            className="my-auto ml-2 h-fit w-fit cursor-pointer rounded-full px-2 py-2 text-white hover:bg-[#fff1]"
-            onClick={() => {
-              const newName = prompt('Enter new name for the file:');
-              if (!isValidIdentifier(newName || '')) {
-                alert('Invalid name');
-                return;
-              }
-              const newModel = monaco?.editor.createModel(
-                '',
-                'typescript',
-                monaco?.Uri.parse(`file:///${newName}.tsx`),
-              );
-              if (!newModel) return;
-              addModel(newModel);
-            }}
+                  <path d="M13.46,12L19,17.54V19H17.54L12,13.46L6.46,19H5V17.54L10.54,12L5,6.46V5H6.46L12,10.54L17.54,5H19V6.46L13.46,12Z" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          className="my-auto ml-2 h-fit w-fit cursor-pointer rounded-full px-2 py-2 text-white hover:bg-[#fff1]"
+          onClick={() => {
+            const newName = prompt('Enter new name for the file:');
+            if (!isValidIdentifier(newName || '')) {
+              alert('Invalid name');
+              return;
+            }
+            const newModel = monaco?.editor.createModel(
+              '',
+              'typescript',
+              monaco?.Uri.parse(`file:///${newName}.tsx`),
+            );
+            if (!newModel) return;
+            addModel(newModel);
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M14 2H6C4.89 2 4 2.89 4 4V20C4 21.11 4.89 22 6 22H13.81C13.28 21.09 13 20.05 13 19C13 15.69 15.69 13 19 13C19.34 13 19.67 13.03 20 13.08V8L14 2M13 9V3.5L18.5 9H13M23 20H20V23H18V20H15V18H18V15H20V18H23V20Z" />
-            </svg>
-          </button> */}
-        </div>
-        <div ref={divRef} className="h-full"></div>
+            <path d="M14 2H6C4.89 2 4 2.89 4 4V20C4 21.11 4.89 22 6 22H13.81C13.28 21.09 13 20.05 13 19C13 15.69 15.69 13 19 13C19.34 13 19.67 13.03 20 13.08V8L14 2M13 9V3.5L18.5 9H13M23 20H20V23H18V20H15V18H18V15H20V18H23V20Z" />
+          </svg>
+        </button>
       </div>
-    </MonacoEditorsContext.Provider>
+      <div ref={divRef} className="h-full"></div>
+    </div>
   );
 }
