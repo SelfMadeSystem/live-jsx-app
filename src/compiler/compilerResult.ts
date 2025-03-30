@@ -1,7 +1,7 @@
 import type * as m from 'monaco-editor';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
-import { compileTsx } from './parseTsx';
+import { compileTsx, type TypeScriptFile } from './parseTsx';
 import {
   TransformCssPropertiesOptions,
   transformCssProperties,
@@ -10,6 +10,8 @@ import {
 export type TransformedProperty = PropertyDefinition & { original: string };
 
 export type CompilerResult = {
+  /** The TypeScript files excluding the main file. */
+  tsFiles: Record<string, TypeScriptFile>;
   /** The new TypeScript code. */
   newTsx: string;
   /** The original TypeScript code. */
@@ -45,6 +47,7 @@ export type CompilerResult = {
 };
 
 export const defaultCompilerResult: CompilerResult = {
+  tsFiles: {},
   newTsx: '',
   tsx: '',
   tsxSuccess: false,
@@ -130,6 +133,35 @@ export async function compile(
     result.tsxSuccess = previousResult.tsxSuccess;
   }
 
+  for (const file in result.tsFiles) {
+    const tsFile = result.tsFiles[file];
+    if (tsFile.newContents !== tsFile.contents) {
+      const compiledTsx = await compileTsx(tsFile.newContents, {
+        importMap: options.importMap,
+        setImportMap: options.setImportMap,
+        signal: options.signal,
+        monaco: options.monaco,
+      });
+      if ('errors' in compiledTsx && compiledTsx.errors) {
+        result.errors.push(...compiledTsx.errors);
+      }
+      if ('warnings' in compiledTsx && compiledTsx.warnings) {
+        result.warnings.push(...compiledTsx.warnings);
+      }
+      if ('code' in compiledTsx && compiledTsx.code) {
+        tsFile.builtJs = compiledTsx.code;
+        tsFile.success = true;
+        tsFile.contents = tsFile.newContents;
+      }
+      if ('classList' in compiledTsx && compiledTsx.classList) {
+        tsFile.classList = Array.from(compiledTsx.classList);
+        result.allClasses.push(...tsFile.classList);
+      } else {
+        tsFile.classList = [];
+      }
+    }
+  }
+
   if (tailwindHandler) {
     if (
       css !== previousResult.css ||
@@ -178,11 +210,15 @@ export async function compile(
     const transformed = transformCssProperties(
       result.builtCss,
       result.builtJs,
+      result.tsFiles,
       transform,
     );
     result.properties = transformed.properties;
     result.transformedJs = transformed.js;
     result.transformedCss = transformed.css;
+    for (const file in result.tsFiles) {
+      result.tsFiles[file].transformedJs = transformed.jsFiles[file];
+    }
   }
 
   return result;

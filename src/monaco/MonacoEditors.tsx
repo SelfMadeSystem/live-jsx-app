@@ -43,14 +43,12 @@ function getModelListFromLocalStorage(): string[] {
   const modelList = localStorage.getItem('monacoModelList');
   if (modelList) {
     const parsedModelList = JSON.parse(modelList);
-    console.log('Loading list:', parsedModelList);
     return parsedModelList;
   }
   return [];
 }
 
 function saveModelListToLocalStorage(modelNames: string[]) {
-  console.log('Saving list:', modelNames);
   localStorage.setItem('monacoModelList', JSON.stringify(modelNames));
 }
 
@@ -136,7 +134,6 @@ export function MonacoEditors({
       ...defaultModelsRecord,
       ...getSavedModelsFromLocalStorage(),
     };
-    console.log('Loading models:', models);
 
     for (const modelName in models) {
       const model = models[modelName];

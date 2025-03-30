@@ -1,14 +1,15 @@
 import type * as m from 'monaco-editor';
-import { getImportUrl, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
 import { abortSymbol } from './compilerResult';
 import {
   JSXAttribute,
+  Module,
   ModuleItem,
   StringLiteral,
   TemplateLiteral,
   parse,
   transform,
 } from '@swc/wasm-web';
+import { tryToAddTypingsToMonaco, getImportUrl } from '../monaco/MonacoUtils';
 
 /**
  * Recursively find all CSS class names in the AST.
@@ -159,12 +160,14 @@ async function replaceImports(
 
 export type TsxCompilerResult = {
   code?: string;
+  parsedModule?: Module;
   classList?: Set<string>;
   errors?: string[];
   warnings?: string[];
 } & (
   | {
       code: string;
+      parsedModule: Module;
       classList: Set<string>;
     }
   | {
@@ -174,6 +177,23 @@ export type TsxCompilerResult = {
       warnings: string[];
     }
 );
+
+export type TypeScriptFile = {
+  /** The name of the file. */
+  filename: string;
+  /** The new contents of the file. */
+  newContents: string;
+  /** The original contents of the file. */
+  contents: string;
+  /** The built JavaScript code. */
+  builtJs: string;
+  /** Whether the file was successfully compiled. */
+  success: boolean;
+  /** The transformed JavaScript code after applying `@property` transformations. */
+  transformedJs: string;
+  /** The list of CSS classes found in the file. */
+  classList: string[];
+};
 
 export type TsxCompilerOptions = {
   importMap: Record<string, string>;
@@ -238,5 +258,5 @@ export async function compileTsx(
     };
   }
 
-  return { code: transformed.code, classList, warnings };
+  return { code: transformed.code, parsedModule: result, classList, warnings };
 }

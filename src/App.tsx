@@ -97,6 +97,24 @@ export default function App() {
       compilerResultRef.current.newTsx = model.getValue();
     } else if (model.uri.path.endsWith('main.css')) {
       compilerResultRef.current.newCss = model.getValue();
+    } else {
+      const filename = model.uri.path.split('/').pop();
+      if (filename) {
+        if (!compilerResultRef.current.tsFiles[filename]) {
+          compilerResultRef.current.tsFiles[filename] = {
+            filename: filename,
+            contents: '',
+            newContents: model.getValue(),
+            builtJs: '',
+            success: false,
+            transformedJs: '',
+            classList: [],
+          };
+        } else {
+          compilerResultRef.current.tsFiles[filename].newContents =
+            model.getValue();
+        }
+      }
     }
 
     const newResult = await compile(compilerResultRef.current, {

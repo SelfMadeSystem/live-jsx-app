@@ -1,6 +1,7 @@
 import type { TransformedProperty } from './compilerResult';
 import postcss from 'postcss';
 import safe from 'postcss-safe-parser';
+import { TypeScriptFile } from './parseTsx';
 
 /**
  * Finds all registered CSS properties in a PostCSS root.
@@ -74,7 +75,7 @@ function replaceCssProperty(
  * Replaces all instances of a CSS property in an HTML string with another
  * property name.
  */
-function replaceHtmlProperty(
+function replaceJsProperty(
   html: string,
   oldProperty: string,
   newProperty: string,
@@ -92,6 +93,7 @@ function sanitizePropertyName(name: string) {
 export type PropertyCompilerResult = {
   css: string;
   js: string;
+  jsFiles: Record<string, string>;
   properties: TransformedProperty[];
 };
 
@@ -103,6 +105,7 @@ export type TransformCssPropertiesOptions = {
 export function transformCssProperties(
   css: string,
   js: string,
+  jsFiles: Record<string, TypeScriptFile>,
   ogOpts: Partial<TransformCssPropertiesOptions> = {},
 ): PropertyCompilerResult {
   const options = {
@@ -111,8 +114,12 @@ export function transformCssProperties(
     ...ogOpts,
   };
   const postcssRoot = postcss().process(css, {
+    //@ts-expect-error idk but it seems that an update of PostCSS broke the
+    // typings for postcss-safe-parser. I don't know enough about PostCSS to
+    // fix it, so I just ignore the error. It doesn't seem to affect the
+    // functionality.
     parser: safe,
-  }).root;
+  }).root.root();
   const cssProperties = findCssProperties(postcssRoot);
   const ids = cssProperties.map(({ name, inherits, initialValue, syntax }) => {
     // Don't need to make a random ID for the property name since, even if
@@ -154,11 +161,22 @@ export function transformCssProperties(
     });
   }
 
-  // Replace all CSS properties in the HTML string with the generated
+  // Replace all CSS properties in the JS string with the generated
   // property names
   let replacedJs = js;
   cssProperties.forEach((property, i) => {
-    replacedJs = replaceHtmlProperty(replacedJs, property.name, ids[i]);
+    replacedJs = replaceJsProperty(replacedJs, property.name, ids[i]);
+  });
+
+  // Replace all CSS properties in the JS files with the generated
+  // property names
+  const replacedJsFiles: Record<string, string> = {};
+  Object.entries(jsFiles).forEach(([filename, file]) => {
+    let replacedFile = file.builtJs;
+    cssProperties.forEach((property, i) => {
+      replacedFile = replaceJsProperty(replacedFile, property.name, ids[i]);
+    });
+    replacedJsFiles[filename] = replacedFile;
   });
 
   // Replace all CSS properties in the CSS string with the generated
@@ -179,6 +197,7 @@ export function transformCssProperties(
   return {
     css: replacedCss,
     js: replacedJs,
+    jsFiles: replacedJsFiles,
     properties: replacedCssProperties,
   };
 }
