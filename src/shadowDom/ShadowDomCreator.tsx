@@ -14,6 +14,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const styleRef = useRef<HTMLStyleElement | null>(null);
   const shadowRoot = useRef<ShadowRoot | null>(null);
   const willRerender = useRef(false);
+  const rendered = useRef(false);
 
   useEffect(() => {
     if (!previewRef.current) {
@@ -40,11 +41,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       // Create the ReactDOM root if it doesn't exist
       if (!rootRef.current) {
         rootRef.current = ReactDOMClient.createRoot(shadowRoot.current);
-        rootRef.current.render(
-          <div>
-            Loading...
-          </div>
-        );
+        rootRef.current.render(<div>Loading...</div>);
       }
 
       if (jsDiff) {
@@ -56,31 +53,44 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         const url = URL.createObjectURL(blob);
 
         // Import the JS from the blob
-        import(/* @vite-ignore */ url).then(module => {
-          if (
-            (signal.aborted && willRerender.current) ||
-            !rootRef.current ||
-            !module.default
-          ) {
-            return;
-          }
+        import(/* @vite-ignore */ url)
+          .then(module => {
+            if (
+              (signal.aborted && willRerender.current) ||
+              !rootRef.current ||
+              !module.default
+            ) {
+              return;
+            }
 
-          const root = rootRef.current;
-          try {
-            // Render the React component
-            // Unique key to force re-render
-            root.render(
-              <ErrorBoundary setShowErrors={setShowErrors} key={js}>
-                {createElement(module.default)}
-              </ErrorBoundary>,
-            );
-          } catch (e) {
+            const root = rootRef.current;
+            try {
+              // Render the React component
+              // Unique key to force re-render
+              root.render(
+                <ErrorBoundary setShowErrors={setShowErrors} key={js}>
+                  {createElement(module.default)}
+                </ErrorBoundary>,
+              );
+              rendered.current = true;
+            } catch (e) {
+              console.error(e);
+              if (!rendered.current) {
+                root.render(
+                  <ErrorBoundary.Errored setShowErrors={setShowErrors} />,
+                );
+              }
+            }
+          })
+          .catch(e => {
             console.error(e);
-          }
-        }).catch(e => {
-          console.error(e);
-          setShowErrors(true);
-        });
+            setShowErrors(true);
+            if (!rendered.current) {
+              rootRef.current!.render(
+                <ErrorBoundary.Errored setShowErrors={setShowErrors} />,
+              );
+            }
+          });
 
         signal.addEventListener('abort', () => {
           URL.revokeObjectURL(url);
