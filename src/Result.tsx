@@ -6,7 +6,7 @@ import { Console } from 'console-feed';
 import { Message } from 'console-feed/lib/definitions/Component';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { JSX, useContext, useEffect, useMemo, useState } from 'react';
 
 const TabButton = ({
   isActive,
@@ -151,7 +151,7 @@ export function Result() {
           onClick={() => setTab('code')}
           icon={Icons.Code}
           label="Code"
-          count={errors.length}
+          count={errors.length + warnings.length}
         />
       </div>
 

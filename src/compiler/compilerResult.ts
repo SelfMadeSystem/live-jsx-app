@@ -105,11 +105,11 @@ export async function compile(
       signal: options.signal,
       monaco: options.monaco,
     });
-    if ('error' in compiledTsx && compiledTsx.error) {
-      result.errors.push(compiledTsx.error);
+    if ('errors' in compiledTsx && compiledTsx.errors) {
+      result.errors.push(...compiledTsx.errors);
     }
-    if ('warning' in compiledTsx && compiledTsx.warning) {
-      result.warnings.push(compiledTsx.warning);
+    if ('warnings' in compiledTsx && compiledTsx.warnings) {
+      result.warnings.push(...compiledTsx.warnings);
     }
     if ('code' in compiledTsx && compiledTsx.code) {
       result.builtJs = compiledTsx.code;

@@ -77,6 +77,9 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
           } catch (e) {
             console.error(e);
           }
+        }).catch(e => {
+          console.error(e);
+          setShowErrors(true);
         });
 
         signal.addEventListener('abort', () => {

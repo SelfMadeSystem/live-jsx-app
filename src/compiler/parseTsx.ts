@@ -77,8 +77,9 @@ function findCssClassList(
 async function replaceImports(
   body: ModuleItem[],
   options: TsxCompilerOptions,
-): Promise<void> {
-  if (!body) return;
+): Promise<string[]> {
+  if (!body) return [];
+  const warnings: string[] = [];
   const { importMap, setImportMap, monaco } = options;
   for (const item of body) {
     if (!item || typeof item !== 'object') continue;
@@ -94,6 +95,12 @@ async function replaceImports(
           importUrl.startsWith('file:')
         ) {
           // Don't change data, blob, http, https or file imports
+          continue;
+        }
+        if (importUrl.startsWith('.')) {
+          warnings.push(
+            `Multiple files aren't yet supported. Please use a single file for now.`,
+          );
           continue;
         }
         const module = importUrl.split('/').pop();
@@ -146,23 +153,25 @@ async function replaceImports(
       // I don't care about other types of imports for now
     }
   }
+
+  return warnings;
 }
 
 export type TsxCompilerResult = {
   code?: string;
   classList?: Set<string>;
-  error?: string;
-  warning?: string;
+  errors?: string[];
+  warnings?: string[];
 } & (
   | {
       code: string;
       classList: Set<string>;
     }
   | {
-      error: string;
+      errors: string[];
     }
   | {
-      warning: string;
+      warnings: string[];
     }
 );
 
@@ -192,11 +201,13 @@ export async function compileTsx(
   }
 
   if ('error' in result) {
-    return result;
+    return {
+      errors: [result.error],
+    };
   }
 
   const classList = findCssClassList(result.body);
-  await replaceImports(result.body, options);
+  const warnings = await replaceImports(result.body, options);
 
   const transformed = await transform(result, {
     jsc: {
@@ -222,8 +233,10 @@ export async function compileTsx(
   }
 
   if ('error' in transformed) {
-    return transformed;
+    return {
+      errors: [transformed.error],
+    };
   }
 
-  return { code: transformed.code, classList };
+  return { code: transformed.code, classList, warnings };
 }
