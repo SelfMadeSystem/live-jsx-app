@@ -1,8 +1,8 @@
+import type * as m from 'monaco-editor';
 import { Result } from './Result';
 import { abortSymbol, compile } from './compiler/compilerResult';
 import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
 import { MonacoContext } from './monaco/MonacoContext';
-import { MonacoEditor } from './monaco/MonacoEditor';
 import { MonacoEditors } from './monaco/MonacoEditors';
 import initSwc from '@swc/wasm-web';
 import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
@@ -81,7 +81,7 @@ export default function App() {
     twInitialized,
   ]);
 
-  async function handleChange({ tsx, css }: { tsx?: string; css?: string }) {
+  async function handleChange(model: m.editor.ITextModel) {
     if (!initialized) {
       return;
     }
@@ -93,23 +93,19 @@ export default function App() {
     abortControllerRef.current = new AbortController();
     const prevResult = compilerResultRef.current;
 
-    if (tsx !== undefined) {
-      compilerResultRef.current.newTsx = tsx;
-    }
-    if (css !== undefined) {
-      compilerResultRef.current.newCss = css;
+    if (model.uri.path.endsWith('main.tsx')) {
+      compilerResultRef.current.newTsx = model.getValue();
+    } else if (model.uri.path.endsWith('main.css')) {
+      compilerResultRef.current.newCss = model.getValue();
     }
 
-    const newResult = await compile(
-      compilerResultRef.current,
-      {
-        tailwindHandler: tailwindcss,
-        importMap,
-        setImportMap,
-        monaco: monaco!,
-        signal: abortControllerRef.current?.signal,
-      },
-    ).catch(e => {
+    const newResult = await compile(compilerResultRef.current, {
+      tailwindHandler: tailwindcss,
+      importMap,
+      setImportMap,
+      monaco: monaco!,
+      signal: abortControllerRef.current?.signal,
+    }).catch(e => {
       if (e !== abortSymbol) {
         console.error(e);
       }
@@ -169,20 +165,22 @@ export default function App() {
         style={{ height }}
       >
         <div style={{ width: left }}>
-          <MonacoEditors resizeCbRef={resizeCbRef}>
-            <MonacoEditor
-              value={DEFAULT_TSX}
-              filename="main.tsx"
-              language="typescript"
-              onChange={s => handleChange({ tsx: s })}
-            />
-            <MonacoEditor
-              value={DEFAULT_CSS}
-              filename="main.css"
-              language="css"
-              onChange={s => handleChange({ css: s })}
-            />
-          </MonacoEditors>
+          <MonacoEditors
+            resizeCbRef={resizeCbRef}
+            handleChange={handleChange}
+            defaultModels={[
+              {
+                value: DEFAULT_TSX,
+                filename: 'main.tsx',
+                language: 'typescript',
+              },
+              {
+                value: DEFAULT_CSS,
+                filename: 'main.css',
+                language: 'css',
+              },
+            ]}
+          />
         </div>
         <div
           className="outline-wihte relative z-10 cursor-col-resize bg-[#18181B] outline-0 outline-white transition-all hover:outline-4 active:outline-4"

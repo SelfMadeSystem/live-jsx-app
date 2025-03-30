@@ -6,7 +6,7 @@ export const log = <T>(...value: [...unknown[], T]): T => {
 };
 
 export const usePrevious = <T>(value: T): T | undefined => {
-  const ref = useRef<T>();
+  const ref = useRef<T>(value);
   useEffect(() => {
     ref.current = value;
   });
@@ -25,3 +25,7 @@ export const debounce = <T extends unknown[]>(
     }, delay);
   };
 };
+
+export function isValidIdentifier(str: string) {
+  return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(str);
+}
