@@ -112,7 +112,7 @@ export function Result() {
   );
 
   const consoleTab = (
-    <div>
+    <div className="flex h-full flex-col items-start">
       {logs.length === 0 ? (
         <div className="p-2">No logs</div>
       ) : (
@@ -123,7 +123,9 @@ export function Result() {
           >
             Clear
           </button>
-          <Console logs={logs} variant="dark" />
+          <div className="h-full overflow-y-auto">
+            <Console logs={logs} variant="dark" />
+          </div>
         </>
       )}
     </div>
