@@ -153,6 +153,7 @@ export async function compile(
         tsFile.builtJs = compiledTsx.code;
         tsFile.success = true;
         tsFile.contents = tsFile.newContents;
+        isDifferent = true;
       }
       if ('parsedModule' in compiledTsx && compiledTsx.parsedModule) {
         tsFile.module = compiledTsx.parsedModule;

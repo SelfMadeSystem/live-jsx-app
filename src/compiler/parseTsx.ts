@@ -372,7 +372,8 @@ export type JsTransformResult = {
  * Processes nodes in topological order.
  */
 async function processImportGraph(
-  files: Pick<TypeScriptFile, 'filename' | 'module'>[],
+  mainModule: Module,
+  files: Pick<TypeScriptFile, 'filename' | 'module' | 'objectUrl'>[],
   options: JsTransformOptions,
 ): Promise<JsTransformResult> {
   const warnings: string[] = [];
@@ -400,7 +401,7 @@ async function processImportGraph(
 
     // Replace imports
     const [warns, updatedImportMap] = await replaceImports(
-      file.module?.body || [],
+      (file.module?.body && JSON.parse(JSON.stringify(file.module.body))) || [],
       { ...options, importMap },
     );
     warnings.push(...warns);
@@ -433,6 +434,7 @@ async function processImportGraph(
       type: 'application/javascript',
     });
     const objectUrl = URL.createObjectURL(blob);
+    file.objectUrl = objectUrl;
 
     // Update the import map
     importMap['./' + filename] = objectUrl;
@@ -452,12 +454,16 @@ async function processImportGraph(
 
   options.setImportMap(importMap);
 
-  const mainModule = files.find(f => f.filename === 'main')?.module;
-  if (!mainModule) {
-    return {
-      errors: ['No main.tsx file found.'],
-    };
-  }
+  // Process the main module
+  mainModule = JSON.parse(JSON.stringify(mainModule));
+  const mainBody = mainModule.body;
+  await replaceImports(mainBody, {
+    ...options,
+    importMap,
+  }).then(([warns]) => {
+    warnings.push(...warns);
+  });
+
   const transformed = await transform(mainModule, TRANSFORM_PARAMS).catch(e => {
     return { error: e };
   });
@@ -479,7 +485,7 @@ export async function transformJs(
   if (options.signal?.aborted) {
     throw abortSymbol;
   }
-  
+
   // FIXME: When deleting a file, the object URL is not revoked.
   for (const file of options.files) {
     if (file.objectUrl) {
@@ -487,16 +493,11 @@ export async function transformJs(
     }
   }
 
-  const files = [
-    ...options.files.map(file => ({
-      filename: file.filename.replace(/\.tsx$/, ''),
-      module: file.module,
-    })),
-    {
-      filename: 'main',
-      module,
-    },
-  ];
+  const files = options.files.map(file => ({
+    filename: file.filename.replace(/\.tsx$/, ''),
+    module: file.module,
+    objectUrl: file.objectUrl,
+  }));
 
   const graph = buildImportGraph(files);
   if (detectCycles(graph)) {
@@ -505,7 +506,7 @@ export async function transformJs(
     };
   }
 
-  const transformed = await processImportGraph(files, options);
+  const transformed = await processImportGraph(module, files, options);
   if (options.signal?.aborted) {
     throw abortSymbol;
   }

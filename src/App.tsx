@@ -107,6 +107,8 @@ export default function App() {
             newContents: model.getValue(),
             builtJs: '',
             success: false,
+            module: null,
+            objectUrl: '',
             transformedJs: '',
             classList: [],
           };
