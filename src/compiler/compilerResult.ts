@@ -1,11 +1,12 @@
 import type * as m from 'monaco-editor';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
-import { compileTsx, type TypeScriptFile } from './parseTsx';
+import { type TypeScriptFile, compileTsx, transformJs } from './parseTsx';
 import {
   TransformCssPropertiesOptions,
   transformCssProperties,
 } from './propertyTransform';
+import { Module } from '@swc/wasm-web';
 
 export type TransformedProperty = PropertyDefinition & { original: string };
 
@@ -32,6 +33,8 @@ export type CompilerResult = {
   twClasses: { name: string; css: string; color?: string }[];
   /** The built JavaScript code. */
   builtJs: string;
+  /** The parsed module */
+  module: Module | null;
   /** The built CSS code. */
   builtCss: string;
   /** The transformed JavaScript code after applying `@property` transformations. */
@@ -58,6 +61,7 @@ export const defaultCompilerResult: CompilerResult = {
   classes: [],
   twClasses: [],
   builtJs: '',
+  module: null,
   builtCss: '',
   transformedJs: '',
   transformedCss: '',
@@ -103,10 +107,7 @@ export async function compile(
 
   if (tsx !== previousResult.tsx) {
     const compiledTsx = await compileTsx(tsx, {
-      importMap: options.importMap,
-      setImportMap: options.setImportMap,
       signal: options.signal,
-      monaco: options.monaco,
     });
     if ('errors' in compiledTsx && compiledTsx.errors) {
       result.errors.push(...compiledTsx.errors);
@@ -118,6 +119,9 @@ export async function compile(
       result.builtJs = compiledTsx.code;
       result.tsxSuccess = true;
       result.tsx = tsx;
+    }
+    if ('parsedModule' in compiledTsx && compiledTsx.parsedModule) {
+      result.module = compiledTsx.parsedModule;
     }
     if ('classList' in compiledTsx && compiledTsx.classList) {
       result.allClasses = Array.from(compiledTsx.classList);
@@ -137,10 +141,7 @@ export async function compile(
     const tsFile = result.tsFiles[file];
     if (tsFile.newContents !== tsFile.contents) {
       const compiledTsx = await compileTsx(tsFile.newContents, {
-        importMap: options.importMap,
-        setImportMap: options.setImportMap,
         signal: options.signal,
-        monaco: options.monaco,
       });
       if ('errors' in compiledTsx && compiledTsx.errors) {
         result.errors.push(...compiledTsx.errors);
@@ -152,6 +153,9 @@ export async function compile(
         tsFile.builtJs = compiledTsx.code;
         tsFile.success = true;
         tsFile.contents = tsFile.newContents;
+      }
+      if ('parsedModule' in compiledTsx && compiledTsx.parsedModule) {
+        tsFile.module = compiledTsx.parsedModule;
       }
       if ('classList' in compiledTsx && compiledTsx.classList) {
         tsFile.classList = Array.from(compiledTsx.classList);
@@ -218,6 +222,26 @@ export async function compile(
     result.transformedCss = transformed.css;
     for (const file in result.tsFiles) {
       result.tsFiles[file].transformedJs = transformed.jsFiles[file];
+    }
+
+    if (result.module) {
+      const transformedJs = await transformJs(result.module, {
+        files: Object.values(result.tsFiles),
+        importMap: options.importMap,
+        monaco: options.monaco,
+        setImportMap: options.setImportMap,
+        signal: options.signal,
+      });
+
+      if ('errors' in transformedJs && transformedJs.errors) {
+        result.errors.push(...transformedJs.errors);
+      }
+      if ('warnings' in transformedJs && transformedJs.warnings) {
+        result.warnings.push(...transformedJs.warnings);
+      }
+      if ('code' in transformedJs && transformedJs.code) {
+        result.transformedJs = transformedJs.code;
+      }
     }
   }
 
