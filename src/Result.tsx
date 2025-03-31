@@ -123,7 +123,7 @@ export function Result() {
           >
             Clear
           </button>
-          <div className="h-full overflow-y-auto">
+          <div className="h-full w-full overflow-y-auto">
             <Console logs={logs} variant="dark" />
           </div>
         </>
