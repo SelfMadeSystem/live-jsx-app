@@ -399,16 +399,23 @@ async function processImportGraph(
       await processNode(dependency);
     }
 
+    if (!file.module) {
+      // If the module is not available, skip it
+      return;
+    }
+
+    const module = JSON.parse(JSON.stringify(file.module)) as Module;
+
     // Replace imports
-    const [warns, updatedImportMap] = await replaceImports(
-      (file.module?.body && JSON.parse(JSON.stringify(file.module.body))) || [],
-      { ...options, importMap },
-    );
+    const [warns, updatedImportMap] = await replaceImports(module.body, {
+      ...options,
+      importMap,
+    });
     warnings.push(...warns);
     Object.assign(importMap, updatedImportMap);
 
     // Transform the body into JS
-    const transformed = await transform(file.module!, {
+    const transformed = await transform(module, {
       jsc: {
         target: 'es2020',
         parser: {
