@@ -137,7 +137,6 @@ export default function App() {
     resetSize();
     swcStarted = true;
     async function importAndRunSwcOnMount() {
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await initSwc(swcWasm);
       setInitialized(true);
       swcInitialized = true;
