@@ -84,6 +84,8 @@ export function MonacoEditors({
   const { monaco } = useContext(MonacoContext);
   const [, updateState] = useState({});
   const forceUpdate = () => updateState({});
+  const handleChangeRef = useRef(handleChange);
+  handleChangeRef.current = handleChange;
 
   const addModel = useCallback(
     (
@@ -95,7 +97,7 @@ export function MonacoEditors({
         saveModelToLocalStorage(filename, model);
       }, 1000);
       (editor ?? newEditor)!.onDidChangeModelContent(() => {
-        handleChange(model);
+        handleChangeRef.current(model);
         saveModel();
       });
       setModels(prev => {
@@ -106,7 +108,7 @@ export function MonacoEditors({
         return newModelList;
       });
     },
-    [editor, handleChange],
+    [editor],
   );
 
   const removeModel = useCallback((model: m.editor.ITextModel) => {

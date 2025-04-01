@@ -39,13 +39,13 @@ export default function App() {
 
   const [initialized, setInitialized] = useState(swcInitialized);
   const [twInitialized, setTwInitialized] = useState(false);
-  const rebuildRef = useRef<m.editor.ITextModel | null>(null);
+  const rebuildRef = useRef<m.editor.ITextModel[]>([]);
 
   const handleChange = useCallback(
     async (model: m.editor.ITextModel) => {
       if (!initialized) {
         logger.debug('SWC not initialized yet');
-        rebuildRef.current = model; // rebuild when swc is initialized
+        rebuildRef.current.push(model); // rebuild when swc is initialized
         return;
       }
       logger.info('Model changed', model.uri.path);
@@ -119,22 +119,29 @@ export default function App() {
   );
 
   useEffect(() => {
+    // call handleChange with the rebuilt model when swc is initialized
+    if (initialized) {
+      logger.debug('SWC initialized, rebuilding models');
+      rebuildRef.current.forEach(model => {
+        handleChange(model);
+      });
+      rebuildRef.current = [];
+      logger.debug('Rebuilt models');
+    }
+  }, [handleChange, initialized]);
+
+  useEffect(() => {
     if (swcStarted) {
       return;
     }
     resetSize();
     swcStarted = true;
     async function importAndRunSwcOnMount() {
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await initSwc(swcWasm);
       setInitialized(true);
       swcInitialized = true;
       logger.debug('SWC initialized');
-
-      if (rebuildRef.current) {
-        logger.debug('Rebuilding after SWC initialized');
-        handleChange(rebuildRef.current);
-        rebuildRef.current = null;
-      }
     }
     importAndRunSwcOnMount();
     window.addEventListener('resize', () => resetSize());
