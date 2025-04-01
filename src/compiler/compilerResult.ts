@@ -1,4 +1,5 @@
 import type * as m from 'monaco-editor';
+import { createLogger } from '../logger';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
 import { type TypeScriptFile, compileTsx, transformJs } from './parseTsx';
@@ -7,6 +8,8 @@ import {
   transformCssProperties,
 } from './propertyTransform';
 import { Module } from '@swc/wasm-web';
+
+const logger = createLogger(import.meta.url);
 
 export type TransformedProperty = PropertyDefinition & { original: string };
 
@@ -91,6 +94,7 @@ export async function compile(
   previousResult: CompilerResult,
   options: CompilerOptions,
 ): Promise<CompilerResult> {
+  logger.debug('Compiling', previousResult, options);
   const { tailwindHandler, transform } = options;
   const result: CompilerResult = {
     ...structuredClone(previousResult),
@@ -106,6 +110,7 @@ export async function compile(
   const css = result.newCss;
 
   if (tsx !== previousResult.tsx) {
+    logger.debug('Compiling tsx');
     const compiledTsx = await compileTsx(tsx, {
       signal: options.signal,
     });
@@ -134,12 +139,14 @@ export async function compile(
 
     isDifferent = true;
   } else {
+    logger.debug('Skip tsx');
     result.tsxSuccess = previousResult.tsxSuccess;
   }
 
   for (const file in result.tsFiles) {
     const tsFile = result.tsFiles[file];
     if (tsFile.newContents !== tsFile.contents) {
+      logger.debug('Compiling tsx file', tsFile.filename);
       const compiledTsx = await compileTsx(tsFile.newContents, {
         signal: options.signal,
       });
@@ -173,6 +180,7 @@ export async function compile(
       previousResult.allClasses.length !== result.allClasses.length ||
       result.allClasses.some(c => !previousResult.allClasses.includes(c))
     ) {
+      logger.debug('Compiling css');
       const compiledCss = await compileCss(css, result.allClasses, {
         tailwindHandler,
         signal: options.signal,
@@ -197,9 +205,11 @@ export async function compile(
 
       isDifferent = true;
     } else {
+      logger.debug('Skip css');
       result.cssSuccess = previousResult.cssSuccess;
     }
   } else {
+    // TODO: Remove me. We're always using tailwind handler.
     // No tailwind handler, so it doesn't matter.
     if (css !== previousResult.css) {
       result.builtCss = css;
@@ -212,6 +222,7 @@ export async function compile(
   }
 
   if (result.builtJs && result.builtCss && isDifferent) {
+    logger.debug('Transforming properties');
     const transformed = transformCssProperties(
       result.builtCss,
       result.builtJs,
@@ -226,6 +237,7 @@ export async function compile(
     }
 
     if (result.module) {
+      logger.debug('Transforming js');
       const transformedJs = await transformJs(result.module, {
         files: Object.values(result.tsFiles),
         importMap: options.importMap,

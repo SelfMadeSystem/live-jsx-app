@@ -8,6 +8,9 @@ import initSwc from '@swc/wasm-web';
 import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
 import { Hook, Unhook } from 'console-feed';
 import { useContext, useEffect, useRef, useState } from 'react';
+import { createLogger } from './logger';
+
+const logger = createLogger(import.meta.url);
 
 let swcStarted = false;
 let swcInitialized = false;
@@ -47,6 +50,7 @@ export default function App() {
       await initSwc(swcWasm);
       setInitialized(true);
       swcInitialized = true;
+      logger.debug('SWC initialized');
     }
     importAndRunSwcOnMount();
     window.addEventListener('resize', () => resetSize());
@@ -72,6 +76,7 @@ export default function App() {
     // First compile after tailwind is initialized
 
     setTwInitialized(true);
+    // this probably doesn't actually need to exist ngl
   }, [
     clearLogs,
     compilerResult,
@@ -83,8 +88,10 @@ export default function App() {
 
   async function handleChange(model: m.editor.ITextModel) {
     if (!initialized) {
+      logger.debug('SWC not initialized yet');
       return;
     }
+    logger.info('Model changed', model.uri.path);
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();

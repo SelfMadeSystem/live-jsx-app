@@ -4,6 +4,9 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { CSS_PRELUDE } from './ShadowDomConsts';
 import { createElement, useContext, useEffect, useRef } from 'react';
 import ReactDOMClient from 'react-dom/client';
+import { createLogger } from '../logger';
+
+const logger = createLogger(import.meta.url);
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const { setShowErrors } = useContext(MonacoContext);
@@ -45,6 +48,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       }
 
       if (jsDiff) {
+        logger.debug('JS changed, re-rendering');
         willRerender.current = true;
         // Create a blob to load the JS from
         const data = new TextEncoder().encode(js);
@@ -98,6 +102,7 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
       }
 
       if (cssDiff) {
+        logger.debug('CSS changed, re-rendering');
         // Create a style element and append it to the shadow root
         const style = styleRef.current ?? document.createElement('style');
         style.textContent = CSS_PRELUDE + css;

@@ -19,6 +19,9 @@ import loader from '@monaco-editor/loader';
 import { Message } from 'console-feed/lib/definitions/Component';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import { useEffect, useRef, useState } from 'react';
+import { createLogger } from '../logger';
+
+const logger = createLogger(import.meta.url);
 
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
@@ -53,6 +56,7 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
 
     window.MonacoEnvironment = {
       getWorker(_workerId, label) {
+        logger.debug('getWorker', _workerId, label);
         switch (label) {
           case 'editorWorkerService':
             return NewWorker('/esm/vs/editor/editor.worker.js');
@@ -216,6 +220,8 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
       const tailwind = new TailwindHandler();
       setTailwindcss(tailwind);
       tailwind.configureMonaco(monaco);
+
+      logger.debug('Monaco initialized');
     });
   }, []);
 

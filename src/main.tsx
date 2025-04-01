@@ -1,9 +1,14 @@
+// import logger before everything else
+import { createLogger } from './logger';
+
 import App from './App.tsx';
 import './index.css';
 import { MonacoProvider } from './monaco/MonacoProvider.tsx';
 import { StrictMode } from 'react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+
+const logger = createLogger(import.meta.url);
 
 window.React = React;
 // @ts-expect-error kuz
@@ -16,3 +21,5 @@ createRoot(document.getElementById('root')!).render(
     </MonacoProvider>
   </StrictMode>,
 );
+
+logger.debug('App mounted');

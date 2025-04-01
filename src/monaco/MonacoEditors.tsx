@@ -1,8 +1,11 @@
 import type * as m from 'monaco-editor';
+import { createLogger } from '../logger';
 import { debounce, isValidIdentifier } from '../utils';
 import { MonacoContext } from './MonacoContext';
 import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
+
+const logger = createLogger(import.meta.url);
 
 type SavedModel = {
   value: string;
@@ -83,7 +86,10 @@ export function MonacoEditors({
   const forceUpdate = () => updateState({});
 
   const addModel = useCallback(
-    (model: m.editor.ITextModel, newEditor?: m.editor.IStandaloneCodeEditor) => {
+    (
+      model: m.editor.ITextModel,
+      newEditor?: m.editor.IStandaloneCodeEditor,
+    ) => {
       const filename = model.uri.path.split('/').pop()!;
       const saveModel = debounce(() => {
         saveModelToLocalStorage(filename, model);
@@ -96,6 +102,7 @@ export function MonacoEditors({
         const newModelList = [...prev, model];
         const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
         saveModelListToLocalStorage(modelNames);
+        logger.debug('Added model', filename);
         return newModelList;
       });
     },
@@ -107,6 +114,7 @@ export function MonacoEditors({
       const newModelList = prev.filter(m => m !== model);
       const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
       saveModelListToLocalStorage(modelNames);
+      logger.debug('Removed model', model.uri.path);
       return newModelList;
     });
   }, []);
@@ -144,6 +152,8 @@ export function MonacoEditors({
       handleChange(newModel);
       if (newEditor.getModel() === null) newEditor.setModel(newModel);
     }
+    logger.debug('Loaded models', models);
+    logger.debug('Editor created', newEditor);
 
     return () => {
       newEditor.dispose();
