@@ -36,6 +36,7 @@ export default defineConfig({
     },
   },
   build: {
+    sourcemap: true, // TODO: Remove when I figure out why it doesn't work
     rollupOptions: {
       input: {
         main: 'index.html',
