@@ -172,7 +172,7 @@ export function transformCssProperties(
   // property names
   const replacedJsFiles: Record<string, string> = {};
   Object.entries(jsFiles).forEach(([filename, file]) => {
-    let replacedFile = file.builtJs;
+    let replacedFile = file.transformedJs || file.builtJs;
     cssProperties.forEach((property, i) => {
       replacedFile = replaceJsProperty(replacedFile, property.name, ids[i]);
     });

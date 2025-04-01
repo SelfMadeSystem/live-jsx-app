@@ -222,20 +222,6 @@ export async function compile(
   }
 
   if (result.builtJs && result.builtCss && isDifferent) {
-    logger.debug('Transforming properties');
-    const transformed = transformCssProperties(
-      result.builtCss,
-      result.builtJs,
-      result.tsFiles,
-      transform,
-    );
-    result.properties = transformed.properties;
-    result.transformedJs = transformed.js;
-    result.transformedCss = transformed.css;
-    for (const file in result.tsFiles) {
-      result.tsFiles[file].transformedJs = transformed.jsFiles[file];
-    }
-
     if (result.module) {
       logger.debug('Transforming js');
       const transformedJs = await transformJs(result.module, {
@@ -255,6 +241,22 @@ export async function compile(
       if ('code' in transformedJs && transformedJs.code) {
         result.transformedJs = transformedJs.code;
       }
+    } else {
+      result.transformedJs = result.builtJs;
+    }
+
+    logger.debug('Transforming properties');
+    const transformed = transformCssProperties(
+      result.builtCss,
+      result.transformedJs,
+      result.tsFiles,
+      transform,
+    );
+    result.properties = transformed.properties;
+    result.transformedJs = transformed.js;
+    result.transformedCss = transformed.css;
+    for (const file in result.tsFiles) {
+      result.tsFiles[file].transformedJs = transformed.jsFiles[file];
     }
   }
 
