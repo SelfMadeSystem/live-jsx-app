@@ -9,7 +9,7 @@ import {
 } from './propertyTransform';
 import { Module } from '@swc/wasm-web';
 
-const logger = createLogger(import.meta.url);
+const logger = createLogger('compilerResult');
 
 export type TransformedProperty = PropertyDefinition & { original: string };
 

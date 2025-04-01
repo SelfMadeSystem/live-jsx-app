@@ -10,7 +10,7 @@ import { Hook, Unhook } from 'console-feed';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { createLogger } from './logger';
 
-const logger = createLogger(import.meta.url);
+const logger = createLogger('App');
 
 let swcStarted = false;
 let swcInitialized = false;

@@ -5,7 +5,7 @@ import { MonacoContext } from './MonacoContext';
 import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
 
-const logger = createLogger(import.meta.url);
+const logger = createLogger('MonacoEditors');
 
 type SavedModel = {
   value: string;

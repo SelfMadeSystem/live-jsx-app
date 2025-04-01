@@ -6,7 +6,7 @@ import { createElement, useContext, useEffect, useRef } from 'react';
 import ReactDOMClient from 'react-dom/client';
 import { createLogger } from '../logger';
 
-const logger = createLogger(import.meta.url);
+const logger = createLogger('ShadowDomCreator');
 
 export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
   const { setShowErrors } = useContext(MonacoContext);

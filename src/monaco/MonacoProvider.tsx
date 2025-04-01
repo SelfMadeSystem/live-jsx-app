@@ -21,7 +21,7 @@ import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
 import { useEffect, useRef, useState } from 'react';
 import { createLogger } from '../logger';
 
-const logger = createLogger(import.meta.url);
+const logger = createLogger('MonacoProvider');
 
 export function MonacoProvider({ children }: { children: React.ReactNode }) {
   const [monaco, setMonaco] = useState<typeof m | null>(null);
