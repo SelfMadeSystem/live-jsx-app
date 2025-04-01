@@ -26,6 +26,6 @@ export const debounce = <T extends unknown[]>(
   };
 };
 
-export function isValidIdentifier(str: string) {
-  return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(str);
+export function isValidFilename(str: string) {
+  return /^[a-zA-Z_\-$][0-9a-zA-Z_\-$]*$/.test(str);
 }

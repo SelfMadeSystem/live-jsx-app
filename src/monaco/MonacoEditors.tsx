@@ -1,6 +1,6 @@
 import type * as m from 'monaco-editor';
 import { createLogger } from '../logger';
-import { debounce, isValidIdentifier } from '../utils';
+import { debounce, isValidFilename } from '../utils';
 import { MonacoContext } from './MonacoContext';
 import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
@@ -220,8 +220,12 @@ export function MonacoEditors({
         <button
           className="my-auto ml-2 h-fit w-fit cursor-pointer rounded-full px-2 py-2 text-white hover:bg-[#fff1]"
           onClick={() => {
-            const newName = prompt('Enter new name for the file:');
-            if (!isValidIdentifier(newName || '')) {
+            let newName = prompt('Enter new name for the file:');
+            if (!newName) return;
+
+            // Strip .tsx or .ts extension if present
+            newName = newName.replace(/\.(tsx|ts)$/, '');
+            if (!isValidFilename(newName || '')) {
               alert('Invalid name');
               return;
             }
