@@ -2,13 +2,13 @@ import type * as m from 'monaco-editor';
 import { Result } from './Result';
 import { abortSymbol, compile } from './compiler/compilerResult';
 import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
+import { createLogger } from './logger';
 import { MonacoContext } from './monaco/MonacoContext';
 import { MonacoEditors } from './monaco/MonacoEditors';
 import initSwc from '@swc/wasm-web';
 import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
 import { Hook, Unhook } from 'console-feed';
-import { useContext, useEffect, useRef, useState } from 'react';
-import { createLogger } from './logger';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 const logger = createLogger('App');
 
@@ -39,6 +39,84 @@ export default function App() {
 
   const [initialized, setInitialized] = useState(swcInitialized);
   const [twInitialized, setTwInitialized] = useState(false);
+  const rebuildRef = useRef<m.editor.ITextModel | null>(null);
+
+  const handleChange = useCallback(
+    async (model: m.editor.ITextModel) => {
+      if (!initialized) {
+        logger.debug('SWC not initialized yet');
+        rebuildRef.current = model; // rebuild when swc is initialized
+        return;
+      }
+      logger.info('Model changed', model.uri.path);
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      abortControllerRef.current = new AbortController();
+      const prevResult = compilerResultRef.current;
+
+      if (model.uri.path.endsWith('main.tsx')) {
+        compilerResultRef.current.newTsx = model.getValue();
+      } else if (model.uri.path.endsWith('main.css')) {
+        compilerResultRef.current.newCss = model.getValue();
+      } else {
+        const filename = model.uri.path.split('/').pop();
+        if (filename) {
+          if (!compilerResultRef.current.tsFiles[filename]) {
+            compilerResultRef.current.tsFiles[filename] = {
+              filename: filename,
+              contents: '',
+              newContents: model.getValue(),
+              builtJs: '',
+              success: false,
+              module: null,
+              objectUrl: '',
+              transformedJs: '',
+              classList: [],
+            };
+          } else {
+            compilerResultRef.current.tsFiles[filename].newContents =
+              model.getValue();
+          }
+        }
+      }
+
+      const newResult = await compile(compilerResultRef.current, {
+        tailwindHandler: tailwindcss,
+        importMap,
+        setImportMap,
+        monaco: monaco!,
+        signal: abortControllerRef.current?.signal,
+      }).catch(e => {
+        if (e !== abortSymbol) {
+          console.error(e);
+        }
+        return abortSymbol;
+      });
+
+      if (typeof newResult === 'symbol') {
+        return;
+      }
+
+      setCompilerResult(newResult);
+
+      if (prevResult.transformedJs !== newResult.transformedJs) {
+        clearLogs();
+      }
+    },
+    [
+      clearLogs,
+      compilerResultRef,
+      importMap,
+      initialized,
+      monaco,
+      setCompilerResult,
+      setImportMap,
+      tailwindcss,
+    ],
+  );
 
   useEffect(() => {
     if (swcStarted) {
@@ -51,10 +129,16 @@ export default function App() {
       setInitialized(true);
       swcInitialized = true;
       logger.debug('SWC initialized');
+
+      if (rebuildRef.current) {
+        logger.debug('Rebuilding after SWC initialized');
+        handleChange(rebuildRef.current);
+        rebuildRef.current = null;
+      }
     }
     importAndRunSwcOnMount();
     window.addEventListener('resize', () => resetSize());
-  }, []);
+  }, [handleChange]);
 
   useEffect(() => {
     const hookedConsole = Hook(
@@ -85,70 +169,6 @@ export default function App() {
     tailwindcss,
     twInitialized,
   ]);
-
-  async function handleChange(model: m.editor.ITextModel) {
-    if (!initialized) {
-      logger.debug('SWC not initialized yet');
-      return;
-    }
-    logger.info('Model changed', model.uri.path);
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    const prevResult = compilerResultRef.current;
-
-    if (model.uri.path.endsWith('main.tsx')) {
-      compilerResultRef.current.newTsx = model.getValue();
-    } else if (model.uri.path.endsWith('main.css')) {
-      compilerResultRef.current.newCss = model.getValue();
-    } else {
-      const filename = model.uri.path.split('/').pop();
-      if (filename) {
-        if (!compilerResultRef.current.tsFiles[filename]) {
-          compilerResultRef.current.tsFiles[filename] = {
-            filename: filename,
-            contents: '',
-            newContents: model.getValue(),
-            builtJs: '',
-            success: false,
-            module: null,
-            objectUrl: '',
-            transformedJs: '',
-            classList: [],
-          };
-        } else {
-          compilerResultRef.current.tsFiles[filename].newContents =
-            model.getValue();
-        }
-      }
-    }
-
-    const newResult = await compile(compilerResultRef.current, {
-      tailwindHandler: tailwindcss,
-      importMap,
-      setImportMap,
-      monaco: monaco!,
-      signal: abortControllerRef.current?.signal,
-    }).catch(e => {
-      if (e !== abortSymbol) {
-        console.error(e);
-      }
-      return abortSymbol;
-    });
-
-    if (typeof newResult === 'symbol') {
-      return;
-    }
-
-    setCompilerResult(newResult);
-
-    if (prevResult.transformedJs !== newResult.transformedJs) {
-      clearLogs();
-    }
-  }
 
   function resetSize(w = wPercentRef.current, h = hPercentRef.current) {
     if (parentRef.current) {
