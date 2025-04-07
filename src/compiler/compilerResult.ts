@@ -110,6 +110,9 @@ export async function compile(
     const compiledTsx = await compileTsx(tsx, {
       files: result.tsFiles,
       signal: options.signal,
+      importMap: options.importMap,
+      setImportMap: options.setImportMap,
+      monaco: options.monaco,
     });
     if ('errors' in compiledTsx && compiledTsx.errors) {
       result.errors.push(...compiledTsx.errors);
