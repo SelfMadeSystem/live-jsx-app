@@ -12,7 +12,6 @@
   "dependencies": {
     "@ctrl/tinycolor": "^4.1.0",
     "@monaco-editor/loader": "^1.5.0",
-    "@swc/wasm-web": "^1.11.13",
     "@tailwindcss/language-service": "^0.14.12",
     "@tailwindcss/vite": "^4.0.17",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
@@ -20,6 +19,7 @@
     "ansi-to-html": "^0.7.2",
     "console-feed": "^3.8.0",
     "emmet-monaco-es": "^5.5.0",
+    "esbuild-wasm": "^0.25.2",
     "highlight.js": "^11.11.1",
     "monaco-editor": "^0.52.2",
     "monaco-languageserver-types": "^0.4.0",

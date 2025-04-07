@@ -5,15 +5,15 @@ import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
 import { createLogger } from './logger';
 import { MonacoContext } from './monaco/MonacoContext';
 import { MonacoEditors } from './monaco/MonacoEditors';
-import initSwc from '@swc/wasm-web';
-import swcWasm from '@swc/wasm-web/wasm_bg.wasm?url';
+import { initialize } from 'esbuild-wasm';
+import esbuildUrl from 'esbuild-wasm/esbuild.wasm?url';
 import { Hook, Unhook } from 'console-feed';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 const logger = createLogger('App');
 
-let swcStarted = false;
-let swcInitialized = false;
+let esbuildStarted = false;
+let esbuildInitialized = false;
 
 export default function App() {
   const {
@@ -37,15 +37,15 @@ export default function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const resizeCbRef = useRef<() => void>(() => {});
 
-  const [initialized, setInitialized] = useState(swcInitialized);
+  const [initialized, setInitialized] = useState(esbuildInitialized);
   const [twInitialized, setTwInitialized] = useState(false);
   const rebuildRef = useRef<m.editor.ITextModel[]>([]);
 
   const handleChange = useCallback(
     async (model: m.editor.ITextModel) => {
       if (!initialized) {
-        logger.debug('SWC not initialized yet');
-        rebuildRef.current.push(model); // rebuild when swc is initialized
+        logger.debug('esbuild not initialized yet');
+        rebuildRef.current.push(model); // rebuild when esbuild is initialized
         return;
       }
       logger.info('Model changed', model.uri.path);
@@ -64,20 +64,20 @@ export default function App() {
       } else {
         const filename = model.uri.path.split('/').pop();
         if (filename) {
-          if (!compilerResultRef.current.tsFiles[filename]) {
-            compilerResultRef.current.tsFiles[filename] = {
-              filename: filename,
+          const shortFilename = filename.split('.').shift()!;
+          if (!compilerResultRef.current.tsFiles[shortFilename]) {
+            compilerResultRef.current.tsFiles[shortFilename] = {
+              filename: shortFilename,
               contents: '',
               newContents: model.getValue(),
               builtJs: '',
               success: false,
-              module: null,
               objectUrl: '',
               transformedJs: '',
               classList: [],
             };
           } else {
-            compilerResultRef.current.tsFiles[filename].newContents =
+            compilerResultRef.current.tsFiles[shortFilename].newContents =
               model.getValue();
           }
         }
@@ -119,9 +119,9 @@ export default function App() {
   );
 
   useEffect(() => {
-    // call handleChange with the rebuilt model when swc is initialized
-    if (initialized) {
-      logger.debug('SWC initialized, rebuilding models');
+    // call handleChange with the rebuilt model when esbuild is initialized
+    if (initialized && rebuildRef.current.length > 0) {
+      logger.debug('esbuild initialized, rebuilding models');
       rebuildRef.current.forEach(model => {
         handleChange(model);
       });
@@ -131,18 +131,21 @@ export default function App() {
   }, [handleChange, initialized]);
 
   useEffect(() => {
-    if (swcStarted) {
+    if (esbuildStarted) {
       return;
     }
     resetSize();
-    swcStarted = true;
-    async function importAndRunSwcOnMount() {
-      await initSwc(swcWasm);
+    esbuildStarted = true;
+    async function importAndRunEsbuildOnMount() {
+      await initialize({
+        wasmURL: esbuildUrl,
+        worker: true,
+      });
       setInitialized(true);
-      swcInitialized = true;
-      logger.debug('SWC initialized');
+      esbuildInitialized = true;
+      logger.debug('esbuild initialized');
     }
-    importAndRunSwcOnMount();
+    importAndRunEsbuildOnMount();
     window.addEventListener('resize', () => resetSize());
   }, [handleChange]);
 

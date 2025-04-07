@@ -2,12 +2,11 @@ import type * as m from 'monaco-editor';
 import { createLogger } from '../logger';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
-import { type TypeScriptFile, compileTsx, transformJs } from './parseTsx';
+import { type TypeScriptFile, compileTsx } from './parseTsx';
 import {
   TransformCssPropertiesOptions,
   transformCssProperties,
 } from './propertyTransform';
-import { Module } from '@swc/wasm-web';
 
 const logger = createLogger('compilerResult');
 
@@ -36,8 +35,6 @@ export type CompilerResult = {
   twClasses: { name: string; css: string; color?: string }[];
   /** The built JavaScript code. */
   builtJs: string;
-  /** The parsed module */
-  module: Module | null;
   /** The built CSS code. */
   builtCss: string;
   /** The transformed JavaScript code after applying `@property` transformations. */
@@ -64,7 +61,6 @@ export const defaultCompilerResult: CompilerResult = {
   classes: [],
   twClasses: [],
   builtJs: '',
-  module: null,
   builtCss: '',
   transformedJs: '',
   transformedCss: '',
@@ -112,7 +108,11 @@ export async function compile(
   if (tsx !== previousResult.tsx) {
     logger.debug('Compiling tsx');
     const compiledTsx = await compileTsx(tsx, {
+      files: result.tsFiles,
       signal: options.signal,
+      importMap: options.importMap,
+      setImportMap: options.setImportMap,
+      monaco: options.monaco,
     });
     if ('errors' in compiledTsx && compiledTsx.errors) {
       result.errors.push(...compiledTsx.errors);
@@ -124,9 +124,6 @@ export async function compile(
       result.builtJs = compiledTsx.code;
       result.tsxSuccess = true;
       result.tsx = tsx;
-    }
-    if ('parsedModule' in compiledTsx && compiledTsx.parsedModule) {
-      result.module = compiledTsx.parsedModule;
     }
     if ('classList' in compiledTsx && compiledTsx.classList) {
       result.allClasses = Array.from(compiledTsx.classList);
@@ -141,37 +138,6 @@ export async function compile(
   } else {
     logger.debug('Skip tsx');
     result.tsxSuccess = previousResult.tsxSuccess;
-  }
-
-  for (const file in result.tsFiles) {
-    const tsFile = result.tsFiles[file];
-    if (tsFile.newContents !== tsFile.contents) {
-      logger.debug('Compiling tsx file', tsFile.filename);
-      const compiledTsx = await compileTsx(tsFile.newContents, {
-        signal: options.signal,
-      });
-      if ('errors' in compiledTsx && compiledTsx.errors) {
-        result.errors.push(...compiledTsx.errors);
-      }
-      if ('warnings' in compiledTsx && compiledTsx.warnings) {
-        result.warnings.push(...compiledTsx.warnings);
-      }
-      if ('code' in compiledTsx && compiledTsx.code) {
-        tsFile.builtJs = compiledTsx.code;
-        tsFile.success = true;
-        tsFile.contents = tsFile.newContents;
-        isDifferent = true;
-      }
-      if ('parsedModule' in compiledTsx && compiledTsx.parsedModule) {
-        tsFile.module = compiledTsx.parsedModule;
-      }
-      if ('classList' in compiledTsx && compiledTsx.classList) {
-        tsFile.classList = Array.from(compiledTsx.classList);
-        result.allClasses.push(...tsFile.classList);
-      } else {
-        tsFile.classList = [];
-      }
-    }
   }
 
   if (tailwindHandler) {
@@ -222,33 +188,10 @@ export async function compile(
   }
 
   if (result.builtJs && result.builtCss && isDifferent) {
-    if (result.module) {
-      logger.debug('Transforming js');
-      const transformedJs = await transformJs(result.module, {
-        files: Object.values(result.tsFiles),
-        importMap: options.importMap,
-        monaco: options.monaco,
-        setImportMap: options.setImportMap,
-        signal: options.signal,
-      });
-
-      if ('errors' in transformedJs && transformedJs.errors) {
-        result.errors.push(...transformedJs.errors);
-      }
-      if ('warnings' in transformedJs && transformedJs.warnings) {
-        result.warnings.push(...transformedJs.warnings);
-      }
-      if ('code' in transformedJs && transformedJs.code) {
-        result.transformedJs = transformedJs.code;
-      }
-    } else {
-      result.transformedJs = result.builtJs;
-    }
-
     logger.debug('Transforming properties');
     const transformed = transformCssProperties(
       result.builtCss,
-      result.transformedJs,
+      result.builtJs,
       result.tsFiles,
       transform,
     );
