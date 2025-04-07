@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild-wasm';
 import * as m from 'monaco-editor';
-import { abortSymbol } from './compilerResult';
 import { getImportUrl, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
+import { abortSymbol } from './compilerResult';
 
 export type TsxCompilerResult = {
   code?: string;
@@ -136,6 +136,12 @@ export async function compileTsx(
           // Handle file reads
           build.onResolve({ filter: /\.\/.*/ }, args => {
             const { path } = args;
+
+            // Ignore './main.css' since it's automatically injected
+            if (path === './main.css') {
+              return { path, namespace: 'ignored' };
+            }
+
             const filename = path.split('/').pop()!;
             if (filename in files) {
               return {
@@ -144,6 +150,14 @@ export async function compileTsx(
               };
             }
             return null;
+          });
+
+          // Handle ignored files
+          build.onLoad({ filter: /.*/, namespace: 'ignored' }, () => {
+            return {
+              contents: '',
+              loader: 'text',
+            };
           });
 
           // Handle file reads
