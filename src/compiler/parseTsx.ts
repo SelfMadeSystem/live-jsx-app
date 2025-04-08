@@ -5,7 +5,7 @@ import {
   getImportUrl,
   tryToAddTypingsToMonaco,
 } from '../monaco/MonacoUtils';
-import { abortSymbol } from './compilerResult';
+import { abortSymbol, LiveFile } from './compilerResult';
 
 export type TsxCompilerResult = {
   code?: string;
@@ -25,17 +25,8 @@ export type TsxCompilerResult = {
     }
 );
 
-export type TypeScriptFile = {
-  /** The name of the file. */
-  filename: string;
-  /** The new contents of the file. */
-  newContents: string;
-  /** The original contents of the file. */
-  contents: string;
-};
-
 export type TsxCompilerOptions = {
-  files: Record<string, TypeScriptFile>;
+  files: Record<string, LiveFile>;
   signal?: AbortSignal;
   importMap: Record<string, string>;
   setImportMap: (importMap: Record<string, string>) => void;
@@ -257,7 +248,7 @@ export async function compileTsx(
   if (options.signal?.aborted) {
     throw abortSymbol;
   }
-  
+
   if (r[1]) {
     const err = r[1];
     console.error('Error during compilation:', err);

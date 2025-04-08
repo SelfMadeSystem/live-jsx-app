@@ -181,6 +181,7 @@ export class TailwindHandler {
   public async buildCss(
     css: string,
     classes: string[],
+    files: Record<string, string>,
     signal?: AbortSignal,
   ): Promise<CssCompilerResult> {
     if (
@@ -194,6 +195,7 @@ export class TailwindHandler {
     this.previousBuildCss = await callWorker('buildCss', {
       css,
       classes,
+      files,
       signal,
     });
     return this.previousBuildCss;

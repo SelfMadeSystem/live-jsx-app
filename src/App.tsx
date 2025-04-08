@@ -61,15 +61,14 @@ export default function App() {
       } else if (path === 'main.css') {
         compilerResultRef.current.newCss = model.getValue();
       } else {
-        if (!compilerResultRef.current.tsFiles[path]) {
-          compilerResultRef.current.tsFiles[path] = {
+        if (!compilerResultRef.current.files[path]) {
+          compilerResultRef.current.files[path] = {
             filename: path,
             contents: '',
             newContents: model.getValue(),
           };
         } else {
-          compilerResultRef.current.tsFiles[path].newContents =
-            model.getValue();
+          compilerResultRef.current.files[path].newContents = model.getValue();
         }
       }
 

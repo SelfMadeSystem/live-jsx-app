@@ -84,7 +84,11 @@ export interface TailwindcssWorker {
     languageId: string;
   }) => AugmentedDiagnostic[] | undefined;
 
-  buildCss: (a: { css: string; classes: string[] }) => CssCompilerResult;
+  buildCss: (a: {
+    css: string;
+    files: Record<string, string>;
+    classes: string[];
+  }) => CssCompilerResult;
 
   getDocumentColors: (a: {
     uri: string;
@@ -93,6 +97,10 @@ export interface TailwindcssWorker {
 
   resolveCompletionItem: (a: { item: CompletionItem }) => CompletionItem;
 }
+
+type TwWorkerArgs<T extends keyof TailwindcssWorker> = Parameters<
+  TailwindcssWorker[T]
+>[0];
 
 export type TailwindcssWorkerWithMirrorModel =
   WithMirrorModelArg<TailwindcssWorker>;
@@ -228,12 +236,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     languageId,
     range,
     context,
-  }: {
-    uri: string;
-    languageId: string;
-    range: Range;
-    context: m.languages.CodeActionContext;
-  }): Promise<CodeAction[] | undefined> {
+  }: TwWorkerArgs<'doCodeActions'>): Promise<CodeAction[] | undefined> {
     const textDocument = this.getDocument(uri, languageId, this.getModel(uri)!);
     return doCodeActions(
       await this.getState(),
@@ -255,12 +258,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     languageId,
     position,
     context,
-  }: {
-    uri: string;
-    languageId: string;
-    position: Position;
-    context: CompletionContext;
-  }): Promise<CompletionList | undefined> {
+  }: TwWorkerArgs<'doComplete'>): Promise<CompletionList | undefined> {
     return doComplete(
       await this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
@@ -273,11 +271,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     uri,
     languageId,
     position,
-  }: {
-    uri: string;
-    languageId: string;
-    position: Position;
-  }) {
+  }: TwWorkerArgs<'doHover'>): Promise<Hover | undefined> {
     return doHover(
       await this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
@@ -285,7 +279,7 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     );
   }
 
-  async doValidate({ uri, languageId }: { uri: string; languageId: string }) {
+  async doValidate({ uri, languageId }: TwWorkerArgs<'doValidate'>) {
     return doValidate(
       await this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
@@ -295,10 +289,9 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
   async getDocumentColors({
     uri,
     languageId,
-  }: {
-    uri: string;
-    languageId: string;
-  }): Promise<ColorInformation[] | undefined> {
+  }: TwWorkerArgs<'getDocumentColors'>): Promise<
+    ColorInformation[] | undefined
+  > {
     return getDocumentColors(
       await this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
@@ -307,19 +300,18 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
 
   async resolveCompletionItem({
     item,
-  }: {
-    item: CompletionItem;
-  }): Promise<CompletionItem> {
+  }: TwWorkerArgs<'resolveCompletionItem'>): Promise<CompletionItem> {
     return resolveCompletionItem(
       await this.getState(),
       item as VSCompletionItem,
     ) as Promise<CompletionItem>;
   }
 
-  async buildCss({ css, classes }: { css: string; classes: string[] }) {
+  async buildCss({ css, files, classes }: TwWorkerArgs<'buildCss'>) {
     if (!compiler) {
       throw new Error('Tailwind CSS compiler is not initialized');
     }
+    const compileOptions = makeCompileOptions(files);
     if (css !== previousCss) {
       compiler = await tailwindcss.compile(css, compileOptions);
       loadDesignSystem(css, compileOptions).then(ds => {
@@ -360,6 +352,8 @@ async function init() {
   }
   initialized = true;
   console.log('Initializing Tailwind CSS worker');
+
+  const compileOptions = makeCompileOptions({});
 
   compiler = await tailwindcss.compile(
     `@import 'tailwindcss';`,
@@ -402,53 +396,86 @@ async function init() {
 
 type CompileOptions = NonNullable<Parameters<typeof tailwindcss.compile>[1]>;
 
-const loadStylesheet: CompileOptions['loadStylesheet'] = async (id, base) => {
-  switch (id) {
-    case 'tailwindcss':
-      return {
-        base,
-        content: index,
-      };
-    case 'tailwindcss/preflight':
-    case 'tailwindcss/preflight.css':
-    case './preflight.css':
-      return {
-        base,
-        content: preflight,
-      };
-    case 'tailwindcss/theme':
-    case 'tailwindcss/theme.css':
-    case './theme.css':
-      return {
-        base,
-        content: theme,
-      };
-    case 'tailwindcss/utilities':
-    case 'tailwindcss/utilities.css':
-    case './utilities.css':
-      return {
-        base,
-        content: utilities,
-      };
-    default:
-      console.warn(
-        `Unexpected stylesheet request: ${id} ${base}. Will have to fix eventually.`,
-      );
-      return {
-        base,
-        content: '',
-      };
-  }
-};
+function createLoadStylesheet(
+  files: Record<string, string>,
+): CompileOptions['loadStylesheet'] {
+  return async (id, base) => {
+    switch (id) {
+      case 'tailwindcss':
+        return {
+          base,
+          content: index,
+        };
+      case 'tailwindcss/preflight':
+      case 'tailwindcss/preflight.css':
+      case './preflight.css':
+        return {
+          base,
+          content: preflight,
+        };
+      case 'tailwindcss/theme':
+      case 'tailwindcss/theme.css':
+      case './theme.css':
+        return {
+          base,
+          content: theme,
+        };
+      case 'tailwindcss/utilities':
+      case 'tailwindcss/utilities.css':
+      case './utilities.css':
+        return {
+          base,
+          content: utilities,
+        };
+      default: {
+        /**
+         * Assumes `path` is a fs-like path (i.e. starts with `/`, `./`, or `../`).
+         */
+        function getAbsoluteImportPath(base: string, path: string): string {
+          // Check if the path is already absolute
+          if (path.startsWith('/')) {
+            return path;
+          }
+
+          // If the path is relative, resolve it against the importer's directory
+          if (path.startsWith('./') || path.startsWith('../')) {
+            return new URL(path, `file://${base}/`).pathname.substring(1);
+          }
+          // Otherwise, return the path as is
+          return path;
+        }
+
+        const absolutePath = getAbsoluteImportPath(base, id);
+        const file = files[absolutePath];
+        if (file) {
+          return {
+            base,
+            content: file,
+          };
+        } else {
+          console.warn(
+            `File not found: ${absolutePath}. Make sure to include it in the files object.`,
+          );
+          return {
+            base,
+            content: '',
+          };
+        }
+      }
+    }
+  };
+}
 
 const loadModule: CompileOptions['loadModule'] = async () => {
   throw new Error('loadModule is not supported in the worker');
 };
 
-const compileOptions: CompileOptions = {
-  base: '/',
-  loadStylesheet,
-  loadModule,
-};
+function makeCompileOptions(files: Record<string, string>): CompileOptions {
+  return {
+    base: '/',
+    loadStylesheet: createLoadStylesheet(files),
+    loadModule,
+  };
+}
 
 init();

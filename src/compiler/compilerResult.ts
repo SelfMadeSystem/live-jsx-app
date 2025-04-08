@@ -2,7 +2,7 @@ import type * as m from 'monaco-editor';
 import { createLogger } from '../logger';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
-import { type TypeScriptFile, compileTsx } from './parseTsx';
+import { compileTsx } from './parseTsx';
 import {
   TransformCssPropertiesOptions,
   transformCssProperties,
@@ -12,9 +12,18 @@ const logger = createLogger('compilerResult');
 
 export type TransformedProperty = PropertyDefinition & { original: string };
 
+export type LiveFile = {
+  /** The name of the file. */
+  filename: string;
+  /** The new contents of the file. */
+  newContents: string;
+  /** The original contents of the file. */
+  contents: string;
+};
+
 export type CompilerResult = {
   /** The TypeScript files excluding the main file. */
-  tsFiles: Record<string, TypeScriptFile>;
+  files: Record<string, LiveFile>;
   /** The new TypeScript code. */
   newTsx: string;
   /** The original TypeScript code. */
@@ -50,7 +59,7 @@ export type CompilerResult = {
 };
 
 export const defaultCompilerResult: CompilerResult = {
-  tsFiles: {},
+  files: {},
   newTsx: '',
   tsx: '',
   tsxSuccess: false,
@@ -105,8 +114,8 @@ export async function compile(
   const tsx = result.newTsx;
   const css = result.newCss;
 
-  for (const fileName in result.tsFiles) {
-    const file = result.tsFiles[fileName];
+  for (const fileName in result.files) {
+    const file = result.files[fileName];
     if (file.contents !== file.newContents) {
       file.contents = file.newContents;
       isDifferent = true;
@@ -116,7 +125,7 @@ export async function compile(
   if (tsx !== previousResult.tsx || isDifferent) {
     logger.debug('Compiling tsx');
     const compiledTsx = await compileTsx(tsx, {
-      files: result.tsFiles,
+      files: result.files,
       signal: options.signal,
       importMap: options.importMap,
       setImportMap: options.setImportMap,
@@ -155,10 +164,15 @@ export async function compile(
       result.allClasses.some(c => !previousResult.allClasses.includes(c))
     ) {
       logger.debug('Compiling css');
-      const compiledCss = await compileCss(css, result.allClasses, {
-        tailwindHandler,
-        signal: options.signal,
-      });
+      const compiledCss = await compileCss(
+        css,
+        result.allClasses,
+        result.files,
+        {
+          tailwindHandler,
+          signal: options.signal,
+        },
+      );
       if (compiledCss.errors) {
         result.errors.push(...compiledCss.errors);
       }
