@@ -92,7 +92,11 @@ export default function App() {
 
       setCompilerResult(newResult);
 
-      if (prevResult.transformedJs !== newResult.transformedJs) {
+      if (
+        prevResult.transformedJs !== newResult.transformedJs ||
+        prevResult.errors.length !== newResult.errors.length ||
+        prevResult.warnings.length !== newResult.warnings.length
+      ) {
         clearLogs();
       }
     },

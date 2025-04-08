@@ -277,5 +277,6 @@ export async function compileTsx(
   return {
     code: result.outputFiles[0].text,
     classList,
+    warnings: result.warnings.map(w => w.text),
   };
 }
