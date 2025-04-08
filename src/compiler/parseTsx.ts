@@ -93,6 +93,42 @@ function virtualNpmPlugin(
   };
 }
 
+/**
+ * Assumes `path` is a fs-like path (i.e. starts with `/`, `./`, or `../`).
+ */
+function getAbsoluteImportPath(importer: string, path: string): string {
+  // Check if the path is already absolute
+  if (path.startsWith('/')) {
+    return path;
+  }
+
+  // Get the directory of the importer
+  const importerDir = importer.split('/').slice(0, -1).join('/');
+  // If the path is relative, resolve it against the importer's directory
+  if (path.startsWith('./') || path.startsWith('../')) {
+    return new URL(path, `file://${importerDir}/`).pathname.substring(1);
+  }
+  // Otherwise, return the path as is
+  return path;
+}
+
+/**
+ * Gets a list of strings to test import paths against.
+ */
+function getImportPathList(path: string): string[] {
+  const filename = path
+  if (filename.includes('.')) {
+    return [path];
+  }
+  return [
+    path,
+    `${path}.js`,
+    `${path}.jsx`,
+    `${path}.ts`,
+    `${path}.tsx`,
+  ];
+}
+
 export async function compileTsx(
   code: string,
   options: TsxCompilerOptions,
@@ -109,10 +145,7 @@ export async function compileTsx(
 
   // Use esbuild to transform the code with the custom plugins
   const result = await esbuild.build({
-    stdin: {
-      contents: code,
-      loader: 'tsx',
-    },
+    entryPoints: ['./main.tsx'],
     bundle: true,
     write: false,
     format: 'esm',
@@ -123,22 +156,41 @@ export async function compileTsx(
       {
         name: 'virtual-file-system',
         setup(build: esbuild.PluginBuild) {
+          // Handle main.tsx
+          build.onResolve({ filter: /main\.tsx$/ }, args => {
+            const { path } = args;
+            if (path === './main.tsx') {
+              return { path, namespace: 'virtual' };
+            }
+            return null;
+          });
+          build.onLoad({ filter: /main\.tsx$/, namespace: 'virtual' }, () => {
+            return {
+              contents: code,
+              loader: 'tsx',
+            };
+          });
+
           // Handle file reads
           build.onResolve({ filter: /\.\/.*/ }, args => {
-            const { path } = args;
+            const { path: importPath, importer } = args;
+            const path = getAbsoluteImportPath(importer, importPath);
 
-            // Ignore './main.css' since it's automatically injected
-            if (path === './main.css') {
+            // Ignore 'main.css' since it's automatically injected
+            if (path === 'main.css') {
               return { path, namespace: 'ignored' };
             }
 
-            const filename = path.split('/').pop()!;
-            if (filename in files) {
-              return {
-                path,
-                namespace: 'virtual',
-              };
+            const importPaths = getImportPathList(path);
+            for (const importPath of importPaths) {
+              if (importPath in files) {
+                return {
+                  path: importPath,
+                  namespace: 'virtual',
+                };
+              }
             }
+
             return null;
           });
 
@@ -153,9 +205,8 @@ export async function compileTsx(
           // Handle file reads
           build.onLoad({ filter: /.*/, namespace: 'virtual' }, args => {
             const { path } = args;
-            const filename = path.split('/').pop()!;
-            if (filename in files) {
-              const file = files[filename];
+            if (path in files) {
+              const file = files[path];
               return {
                 contents: file.newContents,
                 loader: 'tsx',

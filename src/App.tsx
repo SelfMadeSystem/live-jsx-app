@@ -5,9 +5,9 @@ import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
 import { createLogger } from './logger';
 import { MonacoContext } from './monaco/MonacoContext';
 import { MonacoEditors } from './monaco/MonacoEditors';
+import { Hook, Unhook } from 'console-feed';
 import { initialize } from 'esbuild-wasm';
 import esbuildUrl from 'esbuild-wasm/esbuild.wasm?url';
-import { Hook, Unhook } from 'console-feed';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 const logger = createLogger('App');
@@ -57,24 +57,21 @@ export default function App() {
       abortControllerRef.current = new AbortController();
       const prevResult = compilerResultRef.current;
 
-      if (model.uri.path.endsWith('main.tsx')) {
+      const path = model.uri.path.substring(1);
+      if (path === 'main.tsx') {
         compilerResultRef.current.newTsx = model.getValue();
-      } else if (model.uri.path.endsWith('main.css')) {
+      } else if (path === 'main.css') {
         compilerResultRef.current.newCss = model.getValue();
       } else {
-        const filename = model.uri.path.split('/').pop();
-        if (filename) {
-          const shortFilename = filename.split('.').shift()!;
-          if (!compilerResultRef.current.tsFiles[shortFilename]) {
-            compilerResultRef.current.tsFiles[shortFilename] = {
-              filename: shortFilename,
-              contents: '',
-              newContents: model.getValue(),
-            };
-          } else {
-            compilerResultRef.current.tsFiles[shortFilename].newContents =
-              model.getValue();
-          }
+        if (!compilerResultRef.current.tsFiles[path]) {
+          compilerResultRef.current.tsFiles[path] = {
+            filename: path,
+            contents: '',
+            newContents: model.getValue(),
+          };
+        } else {
+          compilerResultRef.current.tsFiles[path].newContents =
+            model.getValue();
         }
       }
 

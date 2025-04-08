@@ -99,7 +99,7 @@ export function MonacoEditors({
       newEditor?: m.editor.IStandaloneCodeEditor,
     ) => {
       model.updateOptions(defaultOptions);
-      const filename = model.uri.path.split('/').pop()!;
+      const filename = model.uri.path.substring(1);
       const saveModel = debounce(() => {
         saveModelToLocalStorage(filename, model);
       }, 1000);
@@ -109,7 +109,7 @@ export function MonacoEditors({
       });
       setModels(prev => {
         const newModelList = [...prev, model];
-        const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
+        const modelNames = newModelList.map(m => m.uri.path.substring(1));
         saveModelListToLocalStorage(modelNames);
         logger.debug('Added model', filename);
         return newModelList;
