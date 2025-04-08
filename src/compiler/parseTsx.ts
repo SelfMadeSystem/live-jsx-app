@@ -1,6 +1,10 @@
 import * as esbuild from 'esbuild-wasm';
 import * as m from 'monaco-editor';
-import { getExtension, getImportUrl, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
+import {
+  getExtension,
+  getImportUrl,
+  tryToAddTypingsToMonaco,
+} from '../monaco/MonacoUtils';
 import { abortSymbol } from './compilerResult';
 
 export type TsxCompilerResult = {
@@ -116,7 +120,7 @@ function getAbsoluteImportPath(importer: string, path: string): string {
  * Gets a list of strings to test import paths against.
  */
 function getImportPathList(path: string): string[] {
-  const filename = path
+  const filename = path;
   if (filename.includes('.')) {
     return [path];
   }
@@ -159,90 +163,104 @@ export async function compileTsx(
   const classList = new Set<string>();
 
   // Use esbuild to transform the code with the custom plugins
-  const result = await esbuild.build({
-    entryPoints: ['./main.tsx'],
-    bundle: true,
-    write: false,
-    format: 'esm',
-    jsxFactory: 'React.createElement',
-    jsxFragment: 'React.Fragment',
-    external: ['react', 'react-dom'],
-    plugins: [
-      {
-        name: 'virtual-file-system',
-        setup(build: esbuild.PluginBuild) {
-          // Handle main.tsx
-          build.onResolve({ filter: /main\.tsx$/ }, args => {
-            const { path } = args;
-            if (path === './main.tsx') {
-              return { path, namespace: 'virtual' };
-            }
-            return null;
-          });
-          build.onLoad({ filter: /main\.tsx$/, namespace: 'virtual' }, () => {
-            return {
-              contents: code,
-              loader: 'tsx',
-            };
-          });
+  const r = await esbuild
+    .build({
+      entryPoints: ['./main.tsx'],
+      bundle: true,
+      write: false,
+      format: 'esm',
+      jsxFactory: 'React.createElement',
+      jsxFragment: 'React.Fragment',
+      external: ['react', 'react-dom'],
+      plugins: [
+        {
+          name: 'virtual-file-system',
+          setup(build: esbuild.PluginBuild) {
+            // Handle main.tsx
+            build.onResolve({ filter: /main\.tsx$/ }, args => {
+              const { path } = args;
+              if (path === './main.tsx') {
+                return { path, namespace: 'virtual' };
+              }
+              return null;
+            });
+            build.onLoad({ filter: /main\.tsx$/, namespace: 'virtual' }, () => {
+              return {
+                contents: code,
+                loader: 'tsx',
+              };
+            });
 
-          // Handle file reads
-          build.onResolve({ filter: /\.\/.*/ }, args => {
-            const { path: importPath, importer } = args;
-            const path = getAbsoluteImportPath(importer, importPath);
+            // Handle file reads
+            build.onResolve({ filter: /\.\/.*/ }, args => {
+              const { path: importPath, importer } = args;
+              const path = getAbsoluteImportPath(importer, importPath);
 
-            // Ignore 'main.css' since it's automatically injected
-            if (path === 'main.css') {
-              return { path, namespace: 'ignored' };
-            }
+              // Ignore 'main.css' since it's automatically injected
+              if (path === 'main.css') {
+                return { path, namespace: 'ignored' };
+              }
 
-            const importPaths = getImportPathList(path);
-            for (const importPath of importPaths) {
-              if (importPath in files) {
+              const importPaths = getImportPathList(path);
+              for (const importPath of importPaths) {
+                if (importPath in files) {
+                  return {
+                    path: importPath,
+                    namespace: 'virtual',
+                  };
+                }
+              }
+
+              return null;
+            });
+
+            // Handle ignored files
+            build.onLoad({ filter: /.*/, namespace: 'ignored' }, () => {
+              return {
+                contents: '',
+                loader: 'text',
+              };
+            });
+
+            // Handle file reads
+            build.onLoad({ filter: /.*/, namespace: 'virtual' }, args => {
+              const { path } = args;
+              if (path in files) {
+                const file = files[path];
                 return {
-                  path: importPath,
-                  namespace: 'virtual',
+                  contents: file.newContents,
+                  loader: getLoaderForFileExtension(getExtension(path)),
                 };
               }
-            }
-
-            return null;
-          });
-
-          // Handle ignored files
-          build.onLoad({ filter: /.*/, namespace: 'ignored' }, () => {
-            return {
-              contents: '',
-              loader: 'text',
-            };
-          });
-
-          // Handle file reads
-          build.onLoad({ filter: /.*/, namespace: 'virtual' }, args => {
-            const { path } = args;
-            if (path in files) {
-              const file = files[path];
-              return {
-                contents: file.newContents,
-                loader: getLoaderForFileExtension(getExtension(path)),
-              };
-            }
-            return null;
-          });
+              return null;
+            });
+          },
+        },
+        virtualNpmPlugin(importMap, setImportMap, monaco), // Add the virtual-npm plugin
+      ],
+      tsconfigRaw: {
+        compilerOptions: {
+          target: 'esnext',
+          module: 'esnext',
+          strict: true,
+          esModuleInterop: true,
+          skipLibCheck: true,
         },
       },
-      virtualNpmPlugin(importMap, setImportMap, monaco), // Add the virtual-npm plugin
-    ],
-    tsconfigRaw: {
-      compilerOptions: {
-        target: 'esnext',
-        module: 'esnext',
-        strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
-      },
-    },
-  });
+    })
+    .then(
+      e => [e, null] as const,
+      e => [null, e] as const,
+    );
+  
+  if (r[1]) {
+    const err = r[1];
+    console.error('Error during compilation:', err);
+    return {
+      errors: [err.message],
+    };
+  }
+  const result = r[0]!;
 
   // Check if the compilation was aborted
   if (signal?.aborted) {

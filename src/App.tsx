@@ -17,7 +17,6 @@ let esbuildInitialized = false;
 
 export default function App() {
   const {
-    compilerResult,
     importMap,
     setImportMap,
     monaco,
@@ -38,7 +37,6 @@ export default function App() {
   const resizeCbRef = useRef<() => void>(() => {});
 
   const [initialized, setInitialized] = useState(esbuildInitialized);
-  const [twInitialized, setTwInitialized] = useState(false);
   const rebuildRef = useRef<m.editor.ITextModel[]>([]);
 
   const handleChange = useCallback(
@@ -152,24 +150,6 @@ export default function App() {
       Unhook(hookedConsole);
     };
   }, [setLogs]);
-
-  useEffect(() => {
-    if (!initialized || twInitialized || !tailwindcss) {
-      return;
-    }
-
-    // First compile after tailwind is initialized
-
-    setTwInitialized(true);
-    // this probably doesn't actually need to exist ngl
-  }, [
-    clearLogs,
-    compilerResult,
-    initialized,
-    setCompilerResult,
-    tailwindcss,
-    twInitialized,
-  ]);
 
   function resetSize(w = wPercentRef.current, h = hPercentRef.current) {
     if (parentRef.current) {
