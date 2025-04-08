@@ -5,16 +5,18 @@ import {
   getImportUrl,
   tryToAddTypingsToMonaco,
 } from '../monaco/MonacoUtils';
-import { abortSymbol, LiveFile } from './compilerResult';
+import { LiveFile, abortSymbol } from './compilerResult';
 
 export type TsxCompilerResult = {
   code?: string;
+  css?: string;
   classList?: Set<string>;
   errors?: string[];
   warnings?: string[];
 } & (
   | {
       code: string;
+      css: string;
       classList: Set<string>;
     }
   | {
@@ -270,9 +272,17 @@ export async function compileTsx(
     match[1].split(' ').forEach(className => classList.add(className));
   }
 
+  let css = '';
+  for (const file of result.outputFiles) {
+    if (file.path.endsWith('.css')) {
+      css += file.text;
+    }
+  }
+
   return {
     code: result.outputFiles[0].text,
     classList,
+    css,
     warnings: result.warnings.map(w => w.text),
   };
 }
