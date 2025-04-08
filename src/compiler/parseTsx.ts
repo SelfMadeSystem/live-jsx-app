@@ -172,6 +172,7 @@ export async function compileTsx(
       jsxFactory: 'React.createElement',
       jsxFragment: 'React.Fragment',
       external: ['react', 'react-dom'],
+      outdir: 'out',
       plugins: [
         {
           name: 'virtual-file-system',
@@ -252,6 +253,10 @@ export async function compileTsx(
       e => [e, null] as const,
       e => [null, e] as const,
     );
+
+  if (options.signal?.aborted) {
+    throw abortSymbol;
+  }
   
   if (r[1]) {
     const err = r[1];
@@ -261,6 +266,7 @@ export async function compileTsx(
     };
   }
   const result = r[0]!;
+  console.log('Compilation result:', result);
 
   // Check if the compilation was aborted
   if (signal?.aborted) {

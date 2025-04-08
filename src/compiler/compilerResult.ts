@@ -169,6 +169,8 @@ export async function compile(
         result.builtCss = compiledCss.css;
         result.cssSuccess = true;
         result.css = css;
+      } else {
+        logger.error('No css');
       }
       result.classes = compiledCss.notTailwindClasses;
       result.twClasses = compiledCss.tailwindClasses.map(tw => ({

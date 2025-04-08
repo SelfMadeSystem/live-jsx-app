@@ -18,6 +18,7 @@ import {
   toCompletionList,
 } from 'monaco-languageserver-types';
 import { registerMarkerDataProvider } from 'monaco-marker-data-provider';
+import { abortSymbol } from '../compiler/compilerResult';
 
 export type CssCompilerResult = {
   css: string;
@@ -78,21 +79,26 @@ export async function callWorker<
   },
 ): Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>> {
   return new Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>>(
-    resolve => {
+    (resolve, reject) => {
       const id = _id++;
       const worker = getWorker();
+      function doStuff(event: MessageEvent) {
+        if (event.data.type === type && event.data.id === id) {
+          resolve(event.data.result);
+          worker.removeEventListener('message', doStuff);
+        }
+      }
       worker.addEventListener(
         'message',
-        function doStuff(event) {
-          if (event.data.type === type && event.data.id === id) {
-            resolve(event.data.result);
-            worker.removeEventListener('message', doStuff);
-          }
-        },
+        doStuff,
         {
           signal,
         },
       );
+      signal?.addEventListener('abort', () => {
+        worker.removeEventListener('message', doStuff);
+        reject(abortSymbol);
+      });
       worker.postMessage({
         type,
         ...payload,

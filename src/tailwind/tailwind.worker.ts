@@ -431,7 +431,13 @@ const loadStylesheet: CompileOptions['loadStylesheet'] = async (id, base) => {
         content: utilities,
       };
     default:
-      throw new Error(`Unexpected stylesheet request: ${id}`);
+      console.warn(
+        `Unexpected stylesheet request: ${id} ${base}. Will have to fix eventually.`,
+      );
+      return {
+        base,
+        content: '',
+      };
   }
 };
 
