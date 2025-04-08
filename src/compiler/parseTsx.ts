@@ -266,7 +266,6 @@ export async function compileTsx(
     };
   }
   const result = r[0]!;
-  console.log('Compilation result:', result);
 
   // Check if the compilation was aborted
   if (signal?.aborted) {
