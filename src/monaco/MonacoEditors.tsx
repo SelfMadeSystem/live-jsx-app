@@ -197,10 +197,10 @@ export function MonacoEditors({
                 forceUpdate();
               }}
             >
-              {model.uri.path.split('/').pop()}
+              {model.uri.path.substring(1)}
             </button>
-            {model.uri.path.split('/').pop() === 'main.tsx' ||
-            model.uri.path.split('/').pop() === 'main.css' ? null : (
+            {model.uri.path.substring(1) === 'main.tsx' ||
+            model.uri.path.substring(1) === 'main.css' ? null : (
               <button
                 className="ml-2 flex cursor-pointer justify-center rounded-full px-1 py-1 hover:bg-[#fff1]"
                 onClick={() => {
@@ -230,8 +230,9 @@ export function MonacoEditors({
             let newName = prompt('Enter new name for the file:');
             if (!newName) return;
 
-            // Strip .tsx or .ts extension if present
-            newName = newName.replace(/\.(tsx|ts)$/, '');
+            newName = newName.trim();
+            newName = newName.replace(/\\/g, '/'); // Replace backslashes with forward slashes
+            newName = newName.replace(/^\//, ''); // Strip leading `/` if present
             if (!isValidFilename(newName || '')) {
               alert('Invalid name');
               return;
