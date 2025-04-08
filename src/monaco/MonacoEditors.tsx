@@ -92,7 +92,9 @@ export function MonacoEditors({
   const forceUpdate = () => updateState({});
   const handleChangeRef = useRef(handleChange);
   handleChangeRef.current = handleChange;
-  const models = monaco?.editor?.getModels()?.filter(m => !m.uri.path.endsWith('.d.ts')) ?? [];
+  const models =
+    monaco?.editor?.getModels()?.filter(m => !m.uri.path.endsWith('.d.ts')) ??
+    [];
 
   const addModel = useCallback(
     (
@@ -105,7 +107,7 @@ export function MonacoEditors({
       const saveModel = debounce(() => {
         saveModelToLocalStorage(filename, model);
       }, 1000);
-      e.onDidChangeModelContent(() => {
+      model.onDidChangeContent(() => {
         handleChangeRef.current(model);
         saveModel();
       });
