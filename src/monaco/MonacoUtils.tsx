@@ -77,3 +77,22 @@ export async function tryToAddTypingsToMonaco(
     [library]: url.toString(),
   }));
 }
+
+export function getExtension(filename: string): string {
+  const parts = filename.split('.');
+  if (parts.length < 2) {
+    return '';
+  }
+  return '.' + parts[parts.length - 1];
+}
+
+export function getLanguageForExtension(extension: string): string {
+  const language = m.languages
+    .getLanguages()
+    .find(lang => lang.extensions?.includes(extension));
+  if (language) {
+    return language.id;
+  }
+
+  return 'plaintext';
+}

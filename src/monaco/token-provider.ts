@@ -1,3 +1,4 @@
+import * as m from 'monaco-editor';
 /* eslint-disable no-useless-escape */
 
 /*
@@ -25,7 +26,7 @@ Time of yoink: 2025-01-22 17:28:51 UTC
  *
  */
 
-export const tokenProvider = {
+export const tokenProvider: m.languages.IMonarchLanguage = {
   defaultToken: 'invalid',
   tokenPostfix: '.ts',
 

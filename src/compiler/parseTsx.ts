@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild-wasm';
 import * as m from 'monaco-editor';
-import { getImportUrl, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
+import { getExtension, getImportUrl, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
 import { abortSymbol } from './compilerResult';
 
 export type TsxCompilerResult = {
@@ -121,12 +121,27 @@ function getImportPathList(path: string): string[] {
     return [path];
   }
   return [
-    path,
-    `${path}.js`,
-    `${path}.jsx`,
+    `${path}.tsx`, // prefer typescript/react
     `${path}.ts`,
-    `${path}.tsx`,
+    `${path}.jsx`,
+    `${path}.js`,
+    path,
   ];
+}
+
+function getLoaderForFileExtension(extension: string): esbuild.Loader {
+  switch (extension) {
+    case '.ts':
+    case '.tsx':
+      return 'tsx';
+    case '.js':
+    case '.jsx':
+      return 'jsx';
+    case '.css':
+      return 'css';
+    default:
+      return 'text';
+  }
 }
 
 export async function compileTsx(
@@ -209,7 +224,7 @@ export async function compileTsx(
               const file = files[path];
               return {
                 contents: file.newContents,
-                loader: 'tsx',
+                loader: getLoaderForFileExtension(getExtension(path)),
               };
             }
             return null;

@@ -2,6 +2,7 @@ import type * as m from 'monaco-editor';
 import { createLogger } from '../logger';
 import { debounce, isValidFilename } from '../utils';
 import { MonacoContext } from './MonacoContext';
+import { getExtension, getLanguageForExtension } from './MonacoUtils';
 import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
 
@@ -91,7 +92,7 @@ export function MonacoEditors({
   const forceUpdate = () => updateState({});
   const handleChangeRef = useRef(handleChange);
   handleChangeRef.current = handleChange;
-  const models = monaco?.editor?.getModels() ?? [];
+  const models = monaco?.editor?.getModels()?.filter(m => !m.uri.path.endsWith('.d.ts')) ?? [];
 
   const addModel = useCallback(
     (
@@ -239,10 +240,20 @@ export function MonacoEditors({
               alert('Invalid name');
               return;
             }
+            const filename = newName.split('/').pop() || '';
+            if (!filename.includes('.')) {
+              newName += '.tsx';
+            }
+            const uri = monaco!.Uri.parse(`file:///${newName}`);
+            if (models.some(m => m.uri.path === uri.path)) {
+              alert('File already exists');
+              return;
+            }
+            const extension = getExtension(filename) || '.tsx';
             const newModel = monaco?.editor.createModel(
               '',
-              'typescript',
-              monaco?.Uri.parse(`file:///${newName}.tsx`),
+              getLanguageForExtension(extension),
+              uri,
             );
             if (!newModel) return;
             addModel(newModel);
