@@ -7,6 +7,12 @@ import { useContext, useEffect, useRef } from 'react';
 
 const logger = createLogger('MonacoEditors');
 
+const defaultOptions = {
+  tabSize: 2,
+  insertSpaces: true,
+  trimAutoWhitespace: true,
+};
+
 type SavedModel = {
   value: string;
   filename: string;
@@ -92,6 +98,7 @@ export function MonacoEditors({
       model: m.editor.ITextModel,
       newEditor?: m.editor.IStandaloneCodeEditor,
     ) => {
+      model.updateOptions(defaultOptions);
       const filename = model.uri.path.split('/').pop()!;
       const saveModel = debounce(() => {
         saveModelToLocalStorage(filename, model);
