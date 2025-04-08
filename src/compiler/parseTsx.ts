@@ -28,16 +28,6 @@ export type TypeScriptFile = {
   newContents: string;
   /** The original contents of the file. */
   contents: string;
-  /** The built JavaScript code. */
-  builtJs: string;
-  /** Whether the file was successfully compiled. */
-  success: boolean;
-  /** The transformed JavaScript code after applying `@property` and import transformations. */
-  transformedJs: string;
-  /** The generated object URL of this file */
-  objectUrl: string;
-  /** The list of CSS classes found in the file. */
-  classList: string[];
 };
 
 export type TsxCompilerOptions = {

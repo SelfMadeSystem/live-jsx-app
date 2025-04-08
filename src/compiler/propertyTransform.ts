@@ -1,7 +1,6 @@
 import type { TransformedProperty } from './compilerResult';
-import postcss from 'postcss';
+import postcss, { Parser, Root } from 'postcss';
 import safe from 'postcss-safe-parser';
-import { TypeScriptFile } from './parseTsx';
 
 /**
  * Finds all registered CSS properties in a PostCSS root.
@@ -93,7 +92,6 @@ function sanitizePropertyName(name: string) {
 export type PropertyCompilerResult = {
   css: string;
   js: string;
-  jsFiles: Record<string, string>;
   properties: TransformedProperty[];
 };
 
@@ -105,7 +103,6 @@ export type TransformCssPropertiesOptions = {
 export function transformCssProperties(
   css: string,
   js: string,
-  jsFiles: Record<string, TypeScriptFile>,
   ogOpts: Partial<TransformCssPropertiesOptions> = {},
 ): PropertyCompilerResult {
   const options = {
@@ -113,12 +110,11 @@ export function transformCssProperties(
     replaceRoot: true,
     ...ogOpts,
   };
-  const postcssRoot = postcss().process(css, {
-    //@ts-expect-error idk but it seems that an update of PostCSS broke the
-    // typings for postcss-safe-parser. I don't know enough about PostCSS to
-    // fix it, so I just ignore the error. It doesn't seem to affect the
-    // functionality.
-    parser: safe,
+  const postcssRoot = postcss().process<Root>(css, {
+    // postcss-safe-parser depends on postcss 8.4.4, but we are using postcss
+    // 8.5+ which seems to have a breaking type change, but are otherwise
+    // compatible
+    parser: safe as unknown as Parser<Root>,
   }).root.root();
   const cssProperties = findCssProperties(postcssRoot);
   const ids = cssProperties.map(({ name, inherits, initialValue, syntax }) => {
@@ -168,17 +164,6 @@ export function transformCssProperties(
     replacedJs = replaceJsProperty(replacedJs, property.name, ids[i]);
   });
 
-  // Replace all CSS properties in the JS files with the generated
-  // property names
-  const replacedJsFiles: Record<string, string> = {};
-  Object.entries(jsFiles).forEach(([filename, file]) => {
-    let replacedFile = file.transformedJs || file.builtJs;
-    cssProperties.forEach((property, i) => {
-      replacedFile = replaceJsProperty(replacedFile, property.name, ids[i]);
-    });
-    replacedJsFiles[filename] = replacedFile;
-  });
-
   // Replace all CSS properties in the CSS string with the generated
   // property names
   removeCssProperties(postcssRoot);
@@ -197,7 +182,6 @@ export function transformCssProperties(
   return {
     css: replacedCss,
     js: replacedJs,
-    jsFiles: replacedJsFiles,
     properties: replacedCssProperties,
   };
 }

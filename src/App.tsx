@@ -70,11 +70,6 @@ export default function App() {
               filename: shortFilename,
               contents: '',
               newContents: model.getValue(),
-              builtJs: '',
-              success: false,
-              objectUrl: '',
-              transformedJs: '',
-              classList: [],
             };
           } else {
             compilerResultRef.current.tsFiles[shortFilename].newContents =

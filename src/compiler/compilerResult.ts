@@ -105,7 +105,15 @@ export async function compile(
   const tsx = result.newTsx;
   const css = result.newCss;
 
-  if (tsx !== previousResult.tsx) {
+  for (const fileName in result.tsFiles) {
+    const file = result.tsFiles[fileName];
+    if (file.contents !== file.newContents) {
+      file.contents = file.newContents;
+      isDifferent = true;
+    }
+  }
+
+  if (tsx !== previousResult.tsx || isDifferent) {
     logger.debug('Compiling tsx');
     const compiledTsx = await compileTsx(tsx, {
       files: result.tsFiles,
@@ -192,16 +200,14 @@ export async function compile(
     const transformed = transformCssProperties(
       result.builtCss,
       result.builtJs,
-      result.tsFiles,
       transform,
     );
     result.properties = transformed.properties;
     result.transformedJs = transformed.js;
     result.transformedCss = transformed.css;
-    for (const file in result.tsFiles) {
-      result.tsFiles[file].transformedJs = transformed.jsFiles[file];
-    }
   }
+
+  logger.debug('Compilation result', result);
 
   return result;
 }
