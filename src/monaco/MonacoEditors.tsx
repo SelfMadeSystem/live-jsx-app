@@ -85,47 +85,49 @@ export function MonacoEditors({
   const [editor, setEditor] = useState<m.editor.IStandaloneCodeEditor | null>(
     null,
   );
-  const [models, setModels] = useState<m.editor.ITextModel[]>([]);
   const divRef = useRef<HTMLDivElement | null>(null);
   const { monaco } = useContext(MonacoContext);
   const [, updateState] = useState({});
   const forceUpdate = () => updateState({});
   const handleChangeRef = useRef(handleChange);
   handleChangeRef.current = handleChange;
+  const models = monaco?.editor?.getModels() ?? [];
 
   const addModel = useCallback(
     (
       model: m.editor.ITextModel,
       newEditor?: m.editor.IStandaloneCodeEditor,
     ) => {
+      const e = (editor ?? newEditor)!;
       model.updateOptions(defaultOptions);
       const filename = model.uri.path.substring(1);
       const saveModel = debounce(() => {
         saveModelToLocalStorage(filename, model);
       }, 1000);
-      (editor ?? newEditor)!.onDidChangeModelContent(() => {
+      e.onDidChangeModelContent(() => {
         handleChangeRef.current(model);
         saveModel();
       });
-      setModels(prev => {
-        const newModelList = [...prev, model];
-        const modelNames = newModelList.map(m => m.uri.path.substring(1));
-        saveModelListToLocalStorage(modelNames);
-        logger.debug('Added model', filename);
-        return newModelList;
-      });
+      saveModelListToLocalStorage(
+        monaco?.editor?.getModels().map(m => m.uri.path.substring(1)) ?? [],
+      );
+      if (e.getModel() === null) {
+        e.setModel(model);
+      }
+      forceUpdate();
+      logger.debug('Added model', filename);
     },
-    [editor],
+    [editor, monaco?.editor],
   );
 
   const removeModel = useCallback((model: m.editor.ITextModel) => {
-    setModels(prev => {
-      const newModelList = prev.filter(m => m !== model);
-      const modelNames = newModelList.map(m => m.uri.path.split('/').pop()!);
-      saveModelListToLocalStorage(modelNames);
-      logger.debug('Removed model', model.uri.path);
-      return newModelList;
-    });
+    const filename = model.uri.path.substring(1);
+    const modelList = getModelListFromLocalStorage();
+    const newModelList = modelList.filter(name => name !== filename);
+    saveModelListToLocalStorage(newModelList);
+    localStorage.removeItem(`monacoModel-${filename}`);
+    forceUpdate();
+    logger.debug('Removed model', filename);
   }, []);
 
   useEffect(() => {
