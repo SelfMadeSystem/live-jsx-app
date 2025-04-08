@@ -111,6 +111,7 @@ export function MonacoEditors({
         handleChangeRef.current(model);
         saveModel();
       });
+      handleChangeRef.current(model);
       saveModelListToLocalStorage(
         monaco?.editor?.getModels().map(m => m.uri.path.substring(1)) ?? [],
       );
@@ -163,7 +164,7 @@ export function MonacoEditors({
       const modelUri = monaco.Uri.file(filename);
       const newModel = monaco.editor.createModel(value, language, modelUri);
       addModel(newModel, newEditor);
-      handleChange(newModel);
+      handleChangeRef.current(newModel);
       if (newEditor.getModel() === null) newEditor.setModel(newModel);
     }
     logger.debug('Loaded models', models);
