@@ -372,7 +372,7 @@ async function init() {
   );
 
   self.addEventListener<'message'>('message', async event => {
-    const { type, mirrorModels, ...payload } = event.data;
+    const { id, type, mirrorModels, ...payload } = event.data;
     if (!type) {
       console.log('Unknown payload:', payload);
       return;
@@ -394,7 +394,7 @@ async function init() {
     console.log('Received message', type, event.data);
     const result = await workerImpl[type as keyof TailwindcssWorker](payload);
     console.log('Sending result', type, result);
-    self.postMessage({ type, result });
+    self.postMessage({ type, result, id });
   });
 
   return workerImpl;

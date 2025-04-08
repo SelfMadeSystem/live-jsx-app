@@ -64,6 +64,8 @@ function getWorker() {
 
 export { getWorker as getTailwindWorker };
 
+let _id = 0;
+
 export async function callWorker<
   T extends keyof TailwindcssWorkerWithMirrorModel,
 >(
@@ -77,11 +79,12 @@ export async function callWorker<
 ): Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>> {
   return new Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>>(
     resolve => {
+      const id = _id++;
       const worker = getWorker();
       worker.addEventListener(
         'message',
         function doStuff(event) {
-          if (event.data.type === type) {
+          if (event.data.type === type && event.data.id === id) {
             resolve(event.data.result);
             worker.removeEventListener('message', doStuff);
           }
@@ -93,6 +96,7 @@ export async function callWorker<
       worker.postMessage({
         type,
         ...payload,
+        id,
       });
     },
   );
