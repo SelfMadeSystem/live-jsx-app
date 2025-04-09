@@ -12,13 +12,15 @@ const logger = createLogger('compilerResult');
 
 export type TransformedProperty = PropertyDefinition & { original: string };
 
+export type FileContents = string | Uint8Array;
+
 export type LiveFile = {
   /** The name of the file. */
   filename: string;
   /** The new contents of the file. */
-  newContents: string;
+  newContents: FileContents;
   /** The original contents of the file. */
-  contents: string;
+  contents: FileContents;
 };
 
 export type CompilerResult = {

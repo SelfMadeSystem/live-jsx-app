@@ -222,7 +222,7 @@ export async function compileTsx(
               if (path in files) {
                 const file = files[path];
                 return {
-                  contents: file.newContents,
+                  contents: file.contents,
                   loader: getLoaderForFileExtension(getExtension(path)),
                 };
               }
