@@ -28,11 +28,13 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request).catch(() => {
         // Check if the app is running on localhost
-        const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const isLocalhost =
+          location.hostname === 'localhost' ||
+          location.hostname === '127.0.0.1';
 
         // Return a custom offline message based on the hostname
         return new Response(
-          `
+          /*html*/ `
           <!DOCTYPE html>
           <html lang="en">
           <head>
