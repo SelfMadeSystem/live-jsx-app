@@ -33,6 +33,7 @@ export default defineConfig({
       'util-deprecate': './src/stubs/util-deprecate.ts',
       'vscode-emmet-helper-bundled':
         './src/stubs/vscode-emmet-helper-bundled.ts',
+      '/service-worker.js': './service.worker.ts',
     },
   },
   build: {
@@ -44,6 +45,7 @@ export default defineConfig({
         'react-dom': 'public/react-dom.js',
         'react-dom-client': 'public/react-dom-client.js',
         'react-jsx-runtime': 'public/react-jsx-runtime.js',
+        'service-worker': 'service.worker.ts',
       },
       output: {
         format: 'es',

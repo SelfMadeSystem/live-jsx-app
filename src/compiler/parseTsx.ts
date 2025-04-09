@@ -205,7 +205,14 @@ export async function compileTsx(
                 }
               }
 
-              return null;
+              // try importing it as <url>/vfs/<path>
+              return {
+                path: new URL(
+                  `vfs/${path}`,
+                  window.location.href,
+                ).href,
+                external: true,
+              }
             });
 
             // Handle ignored files

@@ -130,10 +130,36 @@ export default function App() {
     resetSize();
     esbuildStarted = true;
     async function importAndRunEsbuildOnMount() {
-      await initialize({
-        wasmURL: esbuildUrl,
-        worker: true,
-      });
+      const promises: Promise<void>[] = [];
+      promises.push(
+        initialize({
+          wasmURL: esbuildUrl,
+          worker: true,
+        }),
+      );
+      if ('serviceWorker' in navigator) {
+        promises.push(
+          navigator.serviceWorker
+            .register('/service-worker.js', {
+              type: 'module',
+              scope: '/',
+            })
+            .then(registration => {
+              logger.debug('Service worker registered', registration);
+            }),
+        );
+
+        // Wait for the service worker to take control
+        if (!navigator.serviceWorker.controller) {
+          await new Promise<void>(resolve => {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              logger.debug('Service worker now controlling the page');
+              resolve();
+            });
+          });
+        }
+      }
+      await Promise.all(promises);
       setInitialized(true);
       esbuildInitialized = true;
       logger.debug('esbuild initialized');
