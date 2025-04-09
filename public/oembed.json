@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/themaxdavitt/oembed-types/refs/heads/master/schema.json",
+  "version": "1.0",
+  "title": "Live JSX Editor",
+  "description": "A live JSX editor built with React and TypeScript.",
+  "author_name": "SelfMadeSystem",
+  "author_url": "https://shoghisimon.ca/",
+  "type": "rich",
+  "provider_name": "Live JSX Editor",
+  "provider_url": "https://live-jsx-editor.shoghisimon.ca/",
+  "html": "<iframe src=\"https://live-jsx-editor.shoghisimon.ca/\" width=\"100%\" height=\"100%\" frameborder=\"0\" allowfullscreen></iframe>",
+  "width": 800,
+  "height": 600,
+  "thumbnail_url": "https://shoghisimon.ca/image.png",
+  "thumbnail_width": 640,
+  "thumbnail_height": 360
+}
