@@ -45,10 +45,12 @@ async function fetchTypings(url: URL): Promise<string | false> {
 }
 
 export function getImportUrl(library: string) {
-  const CDN_URL = 'https://cdn.skypack.dev/';
+  const CDN_URL = 'https://esm.sh/';
 
   const url = new URL(library, CDN_URL);
   url.searchParams.set('dts', 'true');
+  // don't let esm.sh bundle react and react-dom
+  url.searchParams.set('external', 'react,react-dom');
 
   return url;
 }

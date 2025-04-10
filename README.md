@@ -39,7 +39,7 @@ The app uses the Monaco Editor to allow you to write JSX and CSS code. The code 
 ### Additional Features
 
 - **Multi-file Support**: The app supports multiple files by creating a dependency graph and recursively resolving imports. It replaces imports with object URLs to enable seamless file linking.
-- **NPM Package Support**: You can import almost any package from NPM that supports the browser using [Skypack](https://www.skypack.dev/). This includes TypeScript support, as the app automatically downloads type definitions and integrates them into monaco's type checker.
+- **NPM Package Support**: You can import almost any package from NPM that supports the browser using [esm.sh](https://esm.sh/). This includes TypeScript support, as the app automatically downloads type definitions and integrates them into monaco's type checker.
 - **TailwindCSS v4 Support**: The app uses TailwindCSS for styling. You can use any TailwindCSS class in your JSX code, and the app will automatically generate the corresponding CSS. Since this projects supports TailwindCSS v4, you can use the new CSS specific features like `@theme` and `@layer`. You may also opt out of using TailwindCSS by just not using it. If you include any `@import` statements in your CSS, the app will disable automatic TailwindCSS generation unless you specifically `@import "tailwindcss"`.
 - **CSS class autocompletion**: The app provides autocompletion for classes when writing CSS. It finds all the classes used in the JSX code and prompts them as suggestions in the CSS editor.
 

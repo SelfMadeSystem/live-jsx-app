@@ -99,9 +99,9 @@ function shouldCache(request: Request) {
 
   const url = new URL(request.url);
 
-  // Check if the request is from skypack
-  if (url.hostname === 'cdn.skypack.dev') {
-    // We don't want to overwhelm skypack with requests
+  // Check if the request is from esm.sh
+  if (url.hostname === 'esm.sh') {
+    // We don't want to overwhelm esm.sh with requests
     return true;
   }
   // Check if the request is on the same origin as the service worker

@@ -41,7 +41,7 @@ function virtualNpmPlugin(
   monaco: typeof m,
 ): esbuild.Plugin {
   return {
-    name: 'virtual-npm', // uses skypack internally. sorry skypack
+    name: 'virtual-npm', // uses esm.sh internally. sorry esm.sh
     setup(build: esbuild.PluginBuild) {
       build.onResolve({ filter: /^[^./].*/ }, async args => {
         const moduleName = args.path;
