@@ -1,12 +1,17 @@
 import ReactDOM from '/web_modules/react-dom.js';
 
+export const __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
 export const createPortal = ReactDOM.createPortal;
-export const createRoot = ReactDOM.createRoot;
-export const findDOMNode = ReactDOM.findDOMNode;
 export const flushSync = ReactDOM.flushSync;
-export const hydrate = ReactDOM.hydrate;
-export const hydrateRoot = ReactDOM.hydrateRoot;
-export const render = ReactDOM.render;
-export const unmountComponentAtNode = ReactDOM.unmountComponentAtNode;
+export const preconnect = ReactDOM.preconnect;
+export const prefetchDNS = ReactDOM.prefetchDNS;
+export const preinit = ReactDOM.preinit;
+export const preinitModule = ReactDOM.preinitModule;
+export const preload = ReactDOM.preload;
+export const preloadModule = ReactDOM.preloadModule;
+export const requestFormReset = ReactDOM.requestFormReset;
+export const unstable_batchedUpdates = ReactDOM.unstable_batchedUpdates;
+export const useFormState = ReactDOM.useFormState;
+export const useFormStatus = ReactDOM.useFormStatus;
 export const version = ReactDOM.version;
 export default ReactDOM;

@@ -2,7 +2,6 @@ import * as esbuild from 'esbuild-wasm';
 import * as m from 'monaco-editor';
 import {
   getExtension,
-  getImportUrl,
   tryToAddTypingsToMonaco,
 } from '../monaco/MonacoUtils';
 import { LiveFile, abortSymbol } from './compilerResult';
@@ -67,18 +66,11 @@ function virtualNpmPlugin(
 
         // Dynamically add typings to monaco and update the import map
         try {
-          const url = getImportUrl(moduleName).href;
+          // Add typings to monaco
+          const url = (await tryToAddTypingsToMonaco(monaco, moduleName)).toString();
+
           importMap[moduleName] = url;
           setImportMap(importMap);
-
-          // Add typings to monaco
-          await tryToAddTypingsToMonaco(monaco, moduleName, updatedMap => {
-            if (typeof updatedMap === 'function') {
-              setImportMap(updatedMap(importMap));
-            } else {
-              setImportMap(updatedMap);
-            }
-          });
 
           return { path: url, external: true };
         } catch (err) {

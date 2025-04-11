@@ -1,10 +1,10 @@
+import { createLogger } from '../logger';
 import { MonacoContext } from '../monaco/MonacoContext';
 import { usePrevious } from '../utils';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CSS_PRELUDE } from './ShadowDomConsts';
 import { createElement, useContext, useEffect, useRef } from 'react';
 import ReactDOMClient from 'react-dom/client';
-import { createLogger } from '../logger';
 
 const logger = createLogger('ShadowDomCreator');
 
@@ -59,12 +59,12 @@ export function ShadowDomCreator({ css, js }: { css: string; js: string }) {
         // Import the JS from the blob
         import(/* @vite-ignore */ url)
           .then(module => {
-            if (
-              (signal.aborted && willRerender.current) ||
-              !rootRef.current ||
-              !module.default
-            ) {
+            if ((signal.aborted && willRerender.current) || !rootRef.current) {
               return;
+            }
+
+            if (!module.default) {
+              throw new Error('Module does not have a default export');
             }
 
             const root = rootRef.current;

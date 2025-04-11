@@ -58,15 +58,17 @@ export function getImportUrl(library: string) {
 export async function tryToAddTypingsToMonaco(
   monaco: typeof m,
   library: string,
-  setImportMap: React.Dispatch<React.SetStateAction<Record<string, string>>>,
 ) {
   const url = getImportUrl(library);
   const typings = await fetchTypings(url).catch<false>(e => {
     console.error('Failed to fetch typings:', e);
     return false;
   });
+
   if (!typings) {
-    return;
+    throw new Error(
+      `Failed to fetch typings for ${library} from ${url}.`,
+    );
   }
 
   monaco.languages.typescript.typescriptDefaults.addExtraLib(
@@ -74,10 +76,7 @@ export async function tryToAddTypingsToMonaco(
     `types/${library}/index.d.ts`,
   );
 
-  setImportMap(prev => ({
-    ...prev,
-    [library]: url.toString(),
-  }));
+  return url;
 }
 
 export function getExtension(filename: string): string {
