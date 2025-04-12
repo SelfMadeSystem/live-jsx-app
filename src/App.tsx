@@ -219,9 +219,13 @@ export default function App() {
       <div
         className="flex w-full flex-row items-stretch overflow-hidden"
         ref={parentRef}
-        style={{ height }}
+        style={{ height: height === 0 ? `calc(100vh - ${lineWidth}px)` : height }}
       >
-        <div style={{ width: left }}>
+        <div
+          style={{
+            width: left === 0 ? `calc(50% - ${lineWidth / 2}px)` : left,
+          }}
+        >
           <MonacoEditors
             resizeCbRef={resizeCbRef}
             handleChange={handleChange}
@@ -250,7 +254,12 @@ export default function App() {
             document.addEventListener('mouseup', onWMouseUp);
           }}
         />
-        <div className="flex flex-col" style={{ width: right }}>
+        <div
+          className="flex flex-col"
+          style={{
+            width: right === 0 ? `calc(50% - ${lineWidth / 2}px)` : right,
+          }}
+        >
           <Result />
         </div>
       </div>

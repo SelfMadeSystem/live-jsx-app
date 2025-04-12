@@ -3,6 +3,9 @@
 export {};
 declare let self: ServiceWorkerGlobalScope;
 
+const CACHE_NAME = 'v1';
+const CACHE_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 console.log('Service Worker loaded');
 
 const filesToCacheImmediately = ['/'];
@@ -10,7 +13,7 @@ const filesToCacheImmediately = ['/'];
 self.addEventListener('install', event => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open('v1').then(cache => {
+    caches.open(CACHE_NAME).then(cache => {
       console.log('Caching files...');
       return cache.addAll(filesToCacheImmediately);
     }),
@@ -19,11 +22,22 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   console.log('Service Worker activating...');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches
+      .keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              console.log(`Deleting old cache: ${cacheName}`);
+              return caches.delete(cacheName);
+            }
+          }),
+        );
+      })
+      .then(() => self.clients.claim()),
+  );
 });
-
-const CACHE_NAME = 'v1';
-const CACHE_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 /**
  * Fetches a request and caches the response.
@@ -79,9 +93,18 @@ async function fetchAndCacheWithExpiry(request: Request) {
 
 /**
  * Fetches a request and caches the response with the expiry time.
+ * If we can't fetch the request, it returns the cached response if available.
  */
 async function fetchAndCache(request: Request) {
-  const response = await fetch(request);
+  const response = await fetch(request).catch(() => null);
+
+  if (!response) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    return new Response('Network error', { status: 408 });
+  }
 
   const cache = await caches.open(CACHE_NAME);
 
@@ -116,6 +139,22 @@ function shouldCache(request: Request) {
   }
   // Otherwise, just fetch the request
   return false;
+}
+
+async function fetchIfNotCached(request: Request) {
+  const response = await caches.match(request);
+
+  if (response) {
+    // If the response is in the cache, return it
+    return response;
+  }
+  if (dontEverFetch(request)) {
+    // If we don't want to fetch the request, return a 404
+    return new Response('Not found', { status: 404 });
+  }
+
+  // If not, fetch and cache it
+  return fetchAndCacheWithExpiry(request);
 }
 
 function dontEverFetch(request: Request) {
@@ -181,32 +220,10 @@ self.addEventListener('fetch', event => {
   const shouldCacheRequest = shouldCache(event.request);
 
   if (shouldCacheRequest) {
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        if (response) {
-          // If the response is in the cache, return it
-          return response;
-        }
-        if (dontEverFetch(event.request)) {
-          // If we don't want to fetch the request, return a 404
-          return new Response('Not found', { status: 404 });
-        }
-        // If not, fetch and cache it
-        return fetchAndCacheWithExpiry(event.request);
-      }),
-    );
+    event.respondWith(fetchIfNotCached(event.request));
   } else {
     // only respond with cached response if we can't fetch the request
-    event.respondWith(
-      fetchAndCache(event.request).catch(async e => {
-        return caches.match(event.request).then(response => {
-          if (response) {
-            return response;
-          }
-          throw e;
-        });
-      }),
-    );
+    event.respondWith(fetchAndCache(event.request));
     return;
   }
 });
