@@ -4,7 +4,6 @@ export {};
 declare let self: ServiceWorkerGlobalScope;
 
 const CACHE_NAME = 'v1';
-const CACHE_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 console.log('Service Worker loaded');
 
@@ -13,10 +12,11 @@ const filesToCacheImmediately = ['/'];
 self.addEventListener('install', event => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Caching files...');
-      return cache.addAll(filesToCacheImmediately);
-    }),
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      console.log('Caching files...', filesToCacheImmediately);
+      await cache.addAll(filesToCacheImmediately);
+    })(),
   );
 });
 
@@ -41,58 +41,6 @@ self.addEventListener('activate', event => {
 
 /**
  * Fetches a request and caches the response.
- * If the response is already cached, it checks if it's expired.
- * If expired, it fetches a new response and caches it.
- * If not expired, it returns the cached response.
- * @param request - The request to fetch.
- * @returns The response from the cache or the network.
- */
-async function fetchAndCacheWithExpiry(request: Request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-
-  if (cachedResponse) {
-    const cachedTime = new Date(
-      cachedResponse.headers.get('sw-cache-timestamp') || 0,
-    ).getTime();
-    const now = Date.now();
-
-    // Check if the cached response has expired
-    if (now - cachedTime < CACHE_EXPIRY_TIME) {
-      return cachedResponse;
-    } else {
-      // If expired, delete the cached response
-      await cache.delete(request);
-    }
-  }
-
-  // Fetch and cache the new response
-  const response = await fetch(request).catch(() => {
-    // If the fetch fails, return the cached response if available
-    return cachedResponse || new Response('Network error', { status: 408 });
-  });
-
-  if (response.status === 200) {
-    const clonedResponse = response.clone();
-
-    // Add a custom header to store the timestamp
-    const headers = new Headers(clonedResponse.headers);
-    headers.append('sw-cache-timestamp', new Date().toISOString());
-
-    const responseWithTimestamp = new Response(clonedResponse.body, {
-      status: clonedResponse.status,
-      statusText: clonedResponse.statusText,
-      headers,
-    });
-
-    await cache.put(request, responseWithTimestamp);
-  }
-
-  return response;
-}
-
-/**
- * Fetches a request and caches the response with the expiry time.
  * If we can't fetch the request, it returns the cached response if available.
  */
 async function fetchAndCache(request: Request) {
@@ -103,12 +51,17 @@ async function fetchAndCache(request: Request) {
     if (cachedResponse) {
       return cachedResponse;
     }
+    console.error('Network error and no cached response found', request.url);
     return new Response('Network error', { status: 408 });
   }
 
-  const cache = await caches.open(CACHE_NAME);
-
   if (response.status === 200) {
+    const cache = await caches.open(CACHE_NAME);
+    console.log('cached');
+    await cache.put(request, response.clone());
+  } else if (response.status === 304) {
+    console.warn('Not modified, but not cached', request.url);
+    const cache = await caches.open(CACHE_NAME);
     await cache.put(request, response.clone());
   }
 
@@ -154,7 +107,7 @@ async function fetchIfNotCached(request: Request) {
   }
 
   // If not, fetch and cache it
-  return fetchAndCacheWithExpiry(request);
+  return fetchAndCache(request);
 }
 
 function dontEverFetch(request: Request) {
@@ -168,11 +121,26 @@ function dontEverFetch(request: Request) {
   return false;
 }
 
+function dontEverCache(request: Request) {
+  const url = new URL(request.url);
+
+  // We don't want to cache requests that are not http or https
+  // Most commonly, this is a data URL or a chrome-extension URL
+  return url.protocol !== 'http:' && url.protocol !== 'https:';
+}
+
 self.addEventListener('fetch', event => {
-  console.log('Service Worker fetching...', event.request.url);
+  const { request } = event;
+  if (dontEverCache(request)) {
+    // We don't want to cache this request
+    console.log('not fetching...', request.url);
+    return;
+  }
+
+  console.log('Service Worker fetching...', request.url);
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(async () => {
+      fetch(request).catch(async () => {
         const cache = await caches.open(CACHE_NAME);
         const cachedIndex = await cache.match('/');
 
@@ -197,6 +165,15 @@ self.addEventListener('fetch', event => {
                   });
                 } else {
                   console.warn('Toast function not found.');
+                  ${
+                    isLocalhost
+                      ? /*js*/ `document.body.innerText = "You'll \
+have to refresh the tab once more with the dev server running to be able to \
+view it without the dev server. This is because the development scripts don't \
+get cached until after the service worker loads, but the service worker loads \
+after the development scripts load. After one refresh, it should work as intended.";`
+                      : ''
+                  }
                   alert('${offlineMessage}');
                 }
               });
@@ -217,13 +194,13 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
-  const shouldCacheRequest = shouldCache(event.request);
+  const shouldCacheRequest = shouldCache(request);
 
   if (shouldCacheRequest) {
-    event.respondWith(fetchIfNotCached(event.request));
+    event.respondWith(fetchIfNotCached(request));
   } else {
     // only respond with cached response if we can't fetch the request
-    event.respondWith(fetchAndCache(event.request));
+    event.respondWith(fetchAndCache(request));
     return;
   }
 });
