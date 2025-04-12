@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "short_name": "LJSXA",
+  "name": "Live JSX App",
+  "description": "A live JSX editor built with React and TypeScript.",
+  "icons": [
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/image.png",
+      "sizes": "1920x1080",
+      "form_factor": "wide"
+    }
+  ],
+  "orientation": "landscape",
+  "start_url": ".",
+  "display": "minimal-ui",
+  "theme_color": "#007cf0",
+  "background_color": "#ffffff"
+}
