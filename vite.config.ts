@@ -33,7 +33,7 @@ export default defineConfig({
       'util-deprecate': './src/stubs/util-deprecate.ts',
       'vscode-emmet-helper-bundled':
         './src/stubs/vscode-emmet-helper-bundled.ts',
-      '/service-worker.js': './service.worker.ts',
+      '/service-worker.js': './src/service.worker.ts',
     },
   },
   build: {
