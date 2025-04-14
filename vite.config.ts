@@ -45,7 +45,7 @@ export default defineConfig({
         'react-dom': 'public/react-dom.js',
         'react-dom-client': 'public/react-dom-client.js',
         'react-jsx-runtime': 'public/react-jsx-runtime.js',
-        'service-worker': 'service.worker.ts',
+        'service-worker': 'src/service.worker.ts',
       },
       output: {
         format: 'es',
