@@ -30,7 +30,10 @@ export async function compileCss(
   const record: Record<string, string> = {};
 
   for (const file of Object.values(files)) {
-    if (file.filename.endsWith('.css')) {
+    if (
+      file.filename.endsWith('.css') &&
+      typeof file.newContents === 'string'
+    ) {
       record[file.filename] = file.newContents;
     }
   }

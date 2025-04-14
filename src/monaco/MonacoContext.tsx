@@ -1,5 +1,5 @@
 import type * as m from 'monaco-editor';
-import { CompilerResult } from '../compiler/compilerResult';
+import { CompilerResult, defaultCompilerResult } from '../compiler/compilerResult';
 import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { Message } from 'console-feed/lib/definitions/Component';
 import { createContext } from 'react';
@@ -22,8 +22,8 @@ export const MonacoContext = createContext<{
   tailwindcss: null,
   importMap: {},
   setImportMap: () => {},
-  compilerResultRef: { current: {} as CompilerResult },
-  compilerResult: {} as CompilerResult,
+  compilerResultRef: { current: structuredClone(defaultCompilerResult) },
+  compilerResult: structuredClone(defaultCompilerResult),
   setCompilerResult: () => {},
   logs: [],
   setLogs: () => {},
