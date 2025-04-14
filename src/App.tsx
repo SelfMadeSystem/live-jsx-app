@@ -151,11 +151,23 @@ export default function App() {
 
         // Wait for the service worker to take control
         if (!navigator.serviceWorker.controller) {
+          logger.debug('Waiting for service worker...');
           await new Promise<void>(resolve => {
+            let resolved = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
               logger.debug('Service worker now controlling the page');
+              resolved = true;
               resolve();
             });
+
+            setTimeout(() => {
+              // if force refreshing, idk weird stuff happens
+              // and the service worker doesn't take control
+              if (!resolved) {
+                logger.warn('Service worker not controlling the page');
+                resolve();
+              }
+            }, 1000);
           });
         }
       }
@@ -219,7 +231,9 @@ export default function App() {
       <div
         className="flex w-full flex-row items-stretch overflow-hidden"
         ref={parentRef}
-        style={{ height: height === 0 ? `calc(100vh - ${lineWidth}px)` : height }}
+        style={{
+          height: height === 0 ? `calc(100vh - ${lineWidth}px)` : height,
+        }}
       >
         <div
           style={{
