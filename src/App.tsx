@@ -9,6 +9,7 @@ import { Hook, Unhook } from 'console-feed';
 import { initialize } from 'esbuild-wasm';
 import esbuildUrl from 'esbuild-wasm/esbuild.wasm?url';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Toaster } from 'sonner';
 
 const logger = createLogger('App');
 
@@ -228,6 +229,7 @@ export default function App() {
 
   return (
     <>
+      <Toaster position="top-right" theme="dark" />
       <div
         className="flex w-full flex-row items-stretch overflow-hidden"
         ref={parentRef}

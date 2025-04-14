@@ -6,7 +6,7 @@ import { MonacoProvider } from './monaco/MonacoProvider.tsx';
 import { StrictMode } from 'react';
 import React from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 
 const logger = createLogger('main');
 
@@ -21,7 +21,6 @@ export const jsxelem = (
     <MonacoProvider>
       <App />
     </MonacoProvider>
-    <Toaster position="top-right" theme="dark" />
   </StrictMode>
 );
 

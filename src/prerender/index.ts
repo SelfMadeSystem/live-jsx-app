@@ -19,7 +19,11 @@ async function prerender() {
   plugin(myPlugin);
 
   globalThis.document = globalThis.document || {
-    queryCommandSupported: () => false,
+    queryCommandSupported: () => {
+      // @ts-expect-error very hacky to support both monaco and sonner at the same time
+      globalThis.document = undefined;
+      return false;
+    },
   };
 
   globalThis.window = globalThis.window || {

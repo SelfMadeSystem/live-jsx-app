@@ -22,7 +22,6 @@ export default defineConfig({
     }),
     {
       name: 'prerender',
-      apply: 'build',
       async transformIndexHtml(html) {
         // we are in "/node_modules/.vite-temp/vite.config.ts.<...>.mjs"
         // Use Bun to execute the prerender script
