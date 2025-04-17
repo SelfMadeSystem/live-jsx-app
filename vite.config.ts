@@ -5,6 +5,11 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    // vite default is 5173, but since we have a service worker, we need to use
+    // a different port to not interfere with different vite projects
+    port: 5174,
+  },
   plugins: [
     react(),
     tailwindcss(),
