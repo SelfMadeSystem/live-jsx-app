@@ -1,9 +1,6 @@
 import * as esbuild from 'esbuild-wasm';
 import * as m from 'monaco-editor';
-import {
-  getExtension,
-  tryToAddTypingsToMonaco,
-} from '../monaco/MonacoUtils';
+import { getExtension, tryToAddTypingsToMonaco } from '../monaco/MonacoUtils';
 import { LiveFile, abortSymbol } from './compilerResult';
 
 export type TsxCompilerResult = {
@@ -67,7 +64,9 @@ function virtualNpmPlugin(
         // Dynamically add typings to monaco and update the import map
         try {
           // Add typings to monaco
-          const url = (await tryToAddTypingsToMonaco(monaco, moduleName)).toString();
+          const url = (
+            await tryToAddTypingsToMonaco(monaco, moduleName)
+          ).toString();
 
           importMap[moduleName] = url;
           setImportMap(importMap);
@@ -199,12 +198,9 @@ export async function compileTsx(
 
               // try importing it as <url>/vfs/<path>
               return {
-                path: new URL(
-                  `vfs/${path}`,
-                  window.location.href,
-                ).href,
+                path: new URL(`vfs/${path}`, window.location.href).href,
                 external: true,
-              }
+              };
             });
 
             // Handle ignored files
@@ -265,10 +261,28 @@ export async function compileTsx(
   }
 
   // Extract class names from the transformed code
-  const regex = /className: ["'`]([^"'`]+)["'`]/g;
-  let match;
-  while ((match = regex.exec(result.outputFiles[0].text)) !== null) {
-    match[1].split(' ').forEach(className => classList.add(className));
+  // Single quotes
+  const singleQuoteRegex = /'([^'\\]|\\.)*'/g;
+
+  // Double quotes
+  const doubleQuoteRegex = /"([^"\\]|\\.)*"/g;
+
+  // Template literals (backticks)
+  const templateLiteralRegex = /`([^`\\]|\\.)*`/g;
+
+  // Find all string types
+  const singleQuoted = code.match(singleQuoteRegex) || [];
+  const doubleQuoted = code.match(doubleQuoteRegex) || [];
+  const templateLiterals = code.match(templateLiteralRegex) || [];
+
+  // Combine all matches into one array
+  const allMatches = [...singleQuoted, ...doubleQuoted, ...templateLiterals];
+  for (const match of allMatches) {
+    // Remove quotes and split by whitespace
+    const classNames = match.replace(/['"`]/g, '').split(/\s+/).filter(Boolean); // Filter out empty strings
+    for (const className of classNames) {
+      classList.add(className);
+    }
   }
 
   let css = '';
