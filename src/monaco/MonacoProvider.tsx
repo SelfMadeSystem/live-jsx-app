@@ -109,6 +109,7 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
         allowUmdGlobalAccess: true,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
+        target: monaco.languages.typescript.ScriptTarget.ESNext,
         typeRoots: ['types'],
       });
       monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
