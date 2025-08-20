@@ -24,6 +24,7 @@
     "monaco-editor": "^0.52.2",
     "monaco-languageserver-types": "^0.4.0",
     "monaco-marker-data-provider": "^1.2.4",
+    "monaco-worker-manager": "^2.0.1",
     "postcss-safe-parser": "^7.0.1",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react": "^19.1.0",

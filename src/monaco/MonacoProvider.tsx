@@ -5,13 +5,13 @@ import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
+import TailwindWorker from '../tailwind/tailwind.worker?worker';
 import {
   CompilerResult,
   defaultCompilerResult,
 } from '../compiler/compilerResult';
 import {
   TailwindHandler,
-  getTailwindWorker,
 } from '../tailwind/TailwindHandler';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
@@ -68,7 +68,7 @@ export function MonacoProvider({ children }: { children: React.ReactNode }) {
           case 'javascript':
             return NewWorker('/esm/vs/language/typescript/ts.worker.js');
           case 'tailwindcss':
-            return getTailwindWorker();
+            return new TailwindWorker();
           default:
             throw new Error(`Unknown worker label: ${label}`);
         }

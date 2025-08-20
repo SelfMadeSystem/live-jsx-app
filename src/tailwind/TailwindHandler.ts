@@ -9,16 +9,13 @@ import {
 import type {
   RealTailwindcssWorker,
   TailwindcssWorker,
-  TailwindcssWorkerWithMirrorModel,
 } from './tailwind.worker';
-import TailwindWorker from './tailwind.worker?worker';
 import {
   fromCompletionContext,
   fromPosition,
   toCompletionList,
 } from 'monaco-languageserver-types';
 import { registerMarkerDataProvider } from 'monaco-marker-data-provider';
-import { abortSymbol } from '../compiler/compilerResult';
 
 export type CssCompilerResult = {
   css: string;
@@ -31,7 +28,7 @@ export type CssCompilerResult = {
   warnings?: string[];
 };
 
-let worker: Worker | null = null;
+let worker: m.editor.MonacoWebWorker<RealTailwindcssWorker> | null = null;
 
 const defaultLanguageSelector = [
   'css',
@@ -41,71 +38,11 @@ const defaultLanguageSelector = [
   'typescript',
 ] as const;
 
-function getWorker() {
+export async function getWorker(...resources: m.Uri[]) {
   if (!worker) {
-    worker = new TailwindWorker();
-    // @ts-expect-error 'name' is a custom property just so I know what worker is running
-    worker.name = 'tailwindcss';
+    throw new Error('Monaco worker not initialized');
   }
-  return worker;
-}
-
-// FIXME: Figure out why getMonacoWorker is not working
-// function getMonacoWorker(...resources: m.Uri[]) {
-//   if (!monacoWorker) {
-//     throw new Error('Monaco worker not initialized');
-//   }
-
-//   if (resources.length === 0) {
-//     return monacoWorker.getProxy();
-//   }
-
-//   return monacoWorker.withSyncedResources(resources);
-// }
-
-export { getWorker as getTailwindWorker };
-
-let _id = 0;
-
-export async function callWorker<
-  T extends keyof TailwindcssWorkerWithMirrorModel,
->(
-  type: T,
-  {
-    signal,
-    ...payload
-  }: Parameters<TailwindcssWorkerWithMirrorModel[T]>[0] & {
-    signal?: AbortSignal;
-  },
-): Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>> {
-  return new Promise<ReturnType<TailwindcssWorkerWithMirrorModel[T]>>(
-    (resolve, reject) => {
-      const id = _id++;
-      const worker = getWorker();
-      function doStuff(event: MessageEvent) {
-        if (event.data.type === type && event.data.id === id) {
-          resolve(event.data.result);
-          worker.removeEventListener('message', doStuff);
-        }
-      }
-      worker.addEventListener(
-        'message',
-        doStuff,
-        {
-          signal,
-        },
-      );
-      signal?.addEventListener('abort', () => {
-        worker.removeEventListener('message', doStuff);
-        reject(abortSymbol);
-      });
-      worker.postMessage({
-        type,
-        ...payload,
-        id,
-      });
-    },
-  );
+  return worker.withSyncedResources(resources);
 }
 
 export class TailwindHandler {
@@ -118,17 +55,14 @@ export class TailwindHandler {
       notTailwindClasses: [],
     };
 
-  constructor() {
-    getWorker();
-  }
-
   public configureMonaco(monaco: typeof m) {
     const languages = defaultLanguageSelector;
-
-    monaco.editor.createWebWorker<RealTailwindcssWorker>({
+    const ww = monaco.editor.createWebWorker<RealTailwindcssWorker>({
       label: 'tailwindcss',
       moduleId: '/tailwindcss/tailwind.worker',
     });
+
+    worker = ww;
 
     const options = monaco.languages.css.cssDefaults.options;
     monaco.languages.css.cssDefaults.setOptions({
@@ -143,21 +77,22 @@ export class TailwindHandler {
     });
 
     const disposables: m.IDisposable[] = [
+      ww,
       monaco.languages.registerCompletionItemProvider(
         languages,
         createCompletionItemProvider(),
       ),
       monaco.languages.registerColorProvider(
         languages,
-        createColorProvider(monaco, callWorker),
+        createColorProvider(monaco, getWorker),
       ),
       monaco.languages.registerHoverProvider(
         languages,
-        createHoverProvider(callWorker),
+        createHoverProvider(getWorker),
       ),
       monaco.languages.registerCodeActionProvider(
         languages,
-        createCodeActionProvider(callWorker),
+        createCodeActionProvider(getWorker),
       ),
     ];
 
@@ -166,7 +101,7 @@ export class TailwindHandler {
         registerMarkerDataProvider(
           monaco,
           language,
-          createMarkerDataProvider(callWorker),
+          createMarkerDataProvider(getWorker),
         ),
       );
     }
@@ -182,7 +117,8 @@ export class TailwindHandler {
     css: string,
     classes: string[],
     files: Record<string, string>,
-    signal?: AbortSignal,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _signal?: AbortSignal,
   ): Promise<CssCompilerResult> {
     if (
       this.previousCss === css &&
@@ -192,12 +128,9 @@ export class TailwindHandler {
     }
     this.previousCss = css;
     this.previousClasses = classes;
-    this.previousBuildCss = await callWorker('buildCss', {
-      css,
-      classes,
-      files,
-      signal,
-    });
+    this.previousBuildCss = await (
+      await getWorker()
+    ).buildCss(css, files, classes);
     return this.previousBuildCss;
   }
 }
@@ -205,23 +138,18 @@ export class TailwindHandler {
 function createCompletionItemProvider(): m.languages.CompletionItemProvider {
   return {
     async resolveCompletionItem(item) {
-      return callWorker('resolveCompletionItem', { item });
+      return (await getWorker()).resolveCompletionItem(item);
     },
 
     async provideCompletionItems(model, position, context) {
-      const completionList = await callWorker('doComplete', {
-        uri: model.uri.toString(),
-        languageId: model.getLanguageId(),
-        position: fromPosition(position),
-        context: fromCompletionContext(context),
-        mirrorModels: [
-          {
-            uri: model.uri.toJSON(),
-            version: model.getVersionId(),
-            value: model.getValue(),
-          },
-        ],
-      });
+      const completionList = await (
+        await getWorker(model.uri)
+      ).doComplete(
+        model.uri.toString(),
+        model.getLanguageId(),
+        fromPosition(position),
+        fromCompletionContext(context),
+      );
 
       if (!completionList) {
         return;

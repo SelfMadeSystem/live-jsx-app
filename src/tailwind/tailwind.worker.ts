@@ -19,7 +19,8 @@ import {
   resolveCompletionItem,
 } from '@tailwindcss/language-service';
 import { DesignSystem } from '@tailwindcss/language-service/dist/util/v4';
-import { URI } from 'monaco-editor/esm/vs/base/common/uri.js';
+import { initialize } from 'monaco-worker-manager/worker';
+// We no longer manually marshal mirror models / messages; rely on Monaco worker context.
 import index from 'tailwindcss/index.css?raw';
 import preflight from 'tailwindcss/preflight.css?raw';
 import theme from 'tailwindcss/theme.css?raw';
@@ -38,88 +39,56 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 type CompletionItem = m.languages.CompletionItem;
 
-type MirrorModelThing = {
-  uri: m.UriComponents;
-  version: number;
-  value: string;
-};
-
-type Promisified<T> = {
-  [P in keyof T]: T[P] extends (arg: infer A) => infer R
-    ? (arg: A) => Promise<R>
-    : T[P];
-};
-
-type WithMirrorModelArg<T> = {
-  [P in keyof T]: T[P] extends (arg: infer A) => infer R
-    ? (
-        arg: A & { mirrorModels?: MirrorModelThing[] },
-      ) => R extends Promise<unknown> ? R : Promise<R>
-    : T[P];
-};
+// Utility types from the previous custom messaging layer are no longer needed.
+// We keep a lightweight Promisified variant purely for the worker proxy typing.
+// All worker methods return Promises directly (Monaco will await proxy calls), so no extra Promisified wrapper needed.
 
 export interface TailwindcssWorker {
-  doCodeActions: (a: {
-    uri: string;
-    languageId: string;
-    range: Range;
-    context: m.languages.CodeActionContext;
-  }) => CodeAction[] | undefined;
-
-  doComplete: (a: {
-    uri: string;
-    languageId: string;
-    position: Position;
-    context: CompletionContext;
-  }) => CompletionList | undefined;
-
-  doHover: (a: {
-    uri: string;
-    languageId: string;
-    position: Position;
-  }) => Hover | undefined;
-
-  doValidate: (a: {
-    uri: string;
-    languageId: string;
-  }) => AugmentedDiagnostic[] | undefined;
-
-  buildCss: (a: {
-    css: string;
-    files: Record<string, string>;
-    classes: string[];
-  }) => CssCompilerResult;
-
-  getDocumentColors: (a: {
-    uri: string;
-    languageId: string;
-  }) => ColorInformation[] | undefined;
-
-  resolveCompletionItem: (a: { item: CompletionItem }) => CompletionItem;
+  doCodeActions: (
+    uri: string,
+    languageId: string,
+    range: Range,
+    context: m.languages.CodeActionContext,
+  ) => Promise<CodeAction[] | undefined>;
+  doComplete: (
+    uri: string,
+    languageId: string,
+    position: Position,
+    context: CompletionContext,
+  ) => Promise<CompletionList | undefined>;
+  doHover: (
+    uri: string,
+    languageId: string,
+    position: Position,
+  ) => Promise<Hover | undefined>;
+  doValidate: (
+    uri: string,
+    languageId: string,
+  ) => Promise<AugmentedDiagnostic[] | undefined>;
+  buildCss: (
+    css: string,
+    files: Record<string, string>,
+    classes: string[],
+  ) => Promise<CssCompilerResult>;
+  getDocumentColors: (
+    uri: string,
+    languageId: string,
+  ) => Promise<ColorInformation[] | undefined>;
+  resolveCompletionItem: (item: CompletionItem) => Promise<CompletionItem>;
 }
 
-type TwWorkerArgs<T extends keyof TailwindcssWorker> = Parameters<
-  TailwindcssWorker[T]
->[0];
+export type RealTailwindcssWorker = TailwindcssWorker;
 
-export type TailwindcssWorkerWithMirrorModel =
-  WithMirrorModelArg<TailwindcssWorker>;
-
-export type RealTailwindcssWorker = Promisified<
-  WithMirrorModelArg<TailwindcssWorker>
->;
-
-class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
-  // public ctx: m.worker.IWorkerContext | null = null;
-  public mirrorModels: m.worker.IMirrorModel[] = [];
+class TailwindcssWorkerImpl implements TailwindcssWorker {
+  private ctx: m.worker.IWorkerContext | null = null;
   private cachedState: State | null = null;
   private cachedStateDS: DesignSystem | null = null;
 
-  setMirrorModels(models: m.worker.IMirrorModel[]): void {
-    this.mirrorModels = models;
+  setContext(ctx: m.worker.IWorkerContext) {
+    this.ctx = ctx;
   }
 
-  async getState(): Promise<State> {
+  getState(): State {
     if (!designSystem) {
       throw new Error('Design system is not initialized');
     }
@@ -219,27 +188,19 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
   }
 
   getModel(uri: string): m.worker.IMirrorModel | undefined {
-    if (this.mirrorModels.length === 0) {
-      throw new Error('Mirror models are not initialized');
-    }
-    return this.mirrorModels.find(model => String(model.uri) === uri);
-    //   if (!this.ctx) {
-    //     throw new Error('Worker context is not initialized');
-    //   }
-    //   return this.ctx
-    //     .getMirrorModels()
-    //     .find(model => String(model.uri) === uri) as m.worker.IMirrorModel;
+    if (!this.ctx) throw new Error('Worker context is not set');
+    return this.ctx.getMirrorModels().find(model => String(model.uri) === uri);
   }
 
-  async doCodeActions({
-    uri,
-    languageId,
-    range,
-    context,
-  }: TwWorkerArgs<'doCodeActions'>): Promise<CodeAction[] | undefined> {
+  async doCodeActions(
+    uri: string,
+    languageId: string,
+    range: Range,
+    context: m.languages.CodeActionContext,
+  ): Promise<CodeAction[] | undefined> {
     const textDocument = this.getDocument(uri, languageId, this.getModel(uri)!);
     return doCodeActions(
-      await this.getState(),
+      this.getState(),
       {
         range,
         context: {
@@ -253,61 +214,62 @@ class TailwindcssWorkerImpl implements Promisified<TailwindcssWorker> {
     );
   }
 
-  async doComplete({
-    uri,
-    languageId,
-    position,
-    context,
-  }: TwWorkerArgs<'doComplete'>): Promise<CompletionList | undefined> {
+  async doComplete(
+    uri: string,
+    languageId: string,
+    position: Position,
+    context: CompletionContext,
+  ): Promise<CompletionList | undefined> {
     return doComplete(
-      await this.getState(),
+      this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
       position,
       context,
     );
   }
 
-  async doHover({
-    uri,
-    languageId,
-    position,
-  }: TwWorkerArgs<'doHover'>): Promise<Hover | undefined> {
+  async doHover(
+    uri: string,
+    languageId: string,
+    position: Position,
+  ): Promise<Hover | undefined> {
     return doHover(
-      await this.getState(),
+      this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
       position,
     );
   }
 
-  async doValidate({ uri, languageId }: TwWorkerArgs<'doValidate'>) {
+  async doValidate(uri: string, languageId: string) {
     return doValidate(
-      await this.getState(),
+      this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
     );
   }
 
-  async getDocumentColors({
-    uri,
-    languageId,
-  }: TwWorkerArgs<'getDocumentColors'>): Promise<
-    ColorInformation[] | undefined
-  > {
+  async getDocumentColors(
+    uri: string,
+    languageId: string,
+  ): Promise<ColorInformation[] | undefined> {
     return getDocumentColors(
-      await this.getState(),
+      this.getState(),
       this.getDocument(uri, languageId, this.getModel(uri)!),
     );
   }
 
-  async resolveCompletionItem({
-    item,
-  }: TwWorkerArgs<'resolveCompletionItem'>): Promise<CompletionItem> {
+  async resolveCompletionItem(item: CompletionItem): Promise<CompletionItem> {
     return resolveCompletionItem(
-      await this.getState(),
+      this.getState(),
       item as VSCompletionItem,
     ) as Promise<CompletionItem>;
   }
 
-  async buildCss({ css, files, classes }: TwWorkerArgs<'buildCss'>) {
+  async buildCss(
+    css: string,
+    files: Record<string, string>,
+    classes: string[],
+  ) {
+    console.log('Building CSS'); // For debugging purposes
     if (!compiler) {
       throw new Error('Tailwind CSS compiler is not initialized');
     }
@@ -344,55 +306,35 @@ let previousCss = '';
 let compiler: Awaited<ReturnType<typeof tailwindcss.compile>> | null = null;
 let designSystem: DesignSystem | null = null;
 const workerImpl = new TailwindcssWorkerImpl();
-let initialized = false;
 
-async function init() {
-  if (initialized) {
-    return workerImpl;
-  }
-  initialized = true;
-  console.log('Initializing Tailwind CSS worker');
-
+async function ensureCoreInitialized() {
+  if (compiler && designSystem) return;
   const compileOptions = makeCompileOptions({});
-
   compiler = await tailwindcss.compile(
     `@import 'tailwindcss';`,
     compileOptions,
   );
-
   designSystem = await loadDesignSystem(
     `@import 'tailwindcss';`,
     compileOptions,
   );
+}
 
-  self.addEventListener<'message'>('message', async event => {
-    const { id, type, mirrorModels, ...payload } = event.data;
-    if (!type) {
-      console.log('Unknown payload:', payload);
-      return;
-    }
-    if (!(type in workerImpl)) {
-      throw new Error(`Unknown message type: ${type}`);
-    }
-
-    if (mirrorModels && Array.isArray(mirrorModels)) {
-      workerImpl.setMirrorModels(
-        (mirrorModels as MirrorModelThing[]).map(m => ({
-          uri: URI.from(m.uri),
-          version: m.version,
-          getValue: () => m.value,
-        })),
-      );
-    }
-
-    console.log('Received message', type, event.data);
-    const result = await workerImpl[type as keyof TailwindcssWorker](payload);
-    console.log('Sending result', type, result);
-    self.postMessage({ type, result, id });
-  });
-
+// Monaco calls this to instantiate the worker. Keep signature stable.
+export function create(ctx: m.worker.IWorkerContext): TailwindcssWorker {
+  workerImpl.setContext(ctx);
+  // Fire and forget initialization (state getters await lazy loaded design system)
+  ensureCoreInitialized();
   return workerImpl;
 }
+
+self.addEventListener('message', (event: MessageEvent) => {
+  console.log('Worker message received:', event.data);
+});
+
+initialize<TailwindcssWorker>((ctx: m.worker.IWorkerContext) => {
+  return create(ctx);
+});
 
 type CompileOptions = NonNullable<Parameters<typeof tailwindcss.compile>[1]>;
 
@@ -478,4 +420,4 @@ function makeCompileOptions(files: Record<string, string>): CompileOptions {
   };
 }
 
-init();
+// No side-effect init listener needed; Monaco's create() handles setup.
