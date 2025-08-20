@@ -1,5 +1,5 @@
-import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { LiveFile } from './compilerResult';
+import { TailwindHandler } from 'monaco-tailwind/TailwindHandler';
 
 export type CssCompilerResult = {
   css: string;
@@ -21,7 +21,7 @@ export async function compileCss(
   css: string,
   classes: string[],
   files: Record<string, LiveFile>,
-  { tailwindHandler, signal }: CssCompilerOptions,
+  { tailwindHandler }: CssCompilerOptions,
 ): Promise<CssCompilerResult> {
   if (!css.includes('@import')) {
     // If not importing tailwind, add it to the top of the css
@@ -38,5 +38,5 @@ export async function compileCss(
     }
   }
 
-  return tailwindHandler.buildCss(css, classes, record, signal);
+  return tailwindHandler.buildCss(css, classes, record);
 }

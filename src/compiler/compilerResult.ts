@@ -1,12 +1,12 @@
 import type * as m from 'monaco-editor';
 import { createLogger } from '../logger';
-import { TailwindHandler } from '../tailwind/TailwindHandler';
 import { compileCss } from './parseCss';
 import { compileTsx } from './parseTsx';
 import {
   TransformCssPropertiesOptions,
   transformCssProperties,
 } from './propertyTransform';
+import { TailwindHandler } from 'monaco-tailwind/TailwindHandler';
 
 const logger = createLogger('compilerResult');
 

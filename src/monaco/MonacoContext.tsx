@@ -1,7 +1,10 @@
 import type * as m from 'monaco-editor';
-import { CompilerResult, defaultCompilerResult } from '../compiler/compilerResult';
-import { TailwindHandler } from '../tailwind/TailwindHandler';
+import {
+  CompilerResult,
+  defaultCompilerResult,
+} from '../compiler/compilerResult';
 import { Message } from 'console-feed/lib/definitions/Component';
+import { TailwindHandler } from 'monaco-tailwind/TailwindHandler';
 import { createContext } from 'react';
 
 export const MonacoContext = createContext<{

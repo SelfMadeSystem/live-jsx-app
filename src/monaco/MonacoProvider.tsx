@@ -5,21 +5,19 @@ import reactDomIndexTypings from '../../node_modules/@types/react-dom/index.d.ts
 import reactGlobalTypings from '../../node_modules/@types/react/global.d.ts?raw';
 import reactIndexTypings from '../../node_modules/@types/react/index.d.ts?raw';
 import csstypeTypings from '../../node_modules/csstype/index.d.ts?raw';
-import TailwindWorker from '../tailwind/tailwind.worker?worker';
 import {
   CompilerResult,
   defaultCompilerResult,
 } from '../compiler/compilerResult';
-import {
-  TailwindHandler,
-} from '../tailwind/TailwindHandler';
+import { createLogger } from '../logger';
 import { MonacoContext } from './MonacoContext';
 import { tokenProvider } from './token-provider';
 import loader from '@monaco-editor/loader';
 import { Message } from 'console-feed/lib/definitions/Component';
 import { emmetCSS, emmetHTML, registerCustomSnippets } from 'emmet-monaco-es';
+import { TailwindHandler } from 'monaco-tailwind/TailwindHandler';
+import TailwindWorker from 'monaco-tailwind/tailwind.worker?worker';
 import { useEffect, useRef, useState } from 'react';
-import { createLogger } from '../logger';
 
 const logger = createLogger('MonacoProvider');
 
