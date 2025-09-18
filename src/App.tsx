@@ -47,8 +47,9 @@ export default function App() {
 
   const saveProject = useCallback(async () => {
     if (!authKey) {
-      toast.error('You must set an Auth Key to save your project');
-      return;
+      toast.warning(
+        'Without an Auth Key, projects will only be saved for up to 7 days. Ask me for one on Discord if you want longer!',
+      );
     }
 
     const models = monaco?.editor.getModels() || [];
@@ -64,10 +65,12 @@ export default function App() {
 
     const result = await fetch('https://nan.shoghisimon.ca/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': authKey,
-      },
+      headers: authKey
+        ? {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': authKey,
+          }
+        : { 'Content-Type': 'application/json' },
       body: JSON.stringify({ files }),
     });
 
@@ -337,26 +340,22 @@ export default function App() {
       />
 
       <div className="fixed right-4 bottom-4 flex h-10">
-        {
-          authKey ? (
-            <button
-              onClick={saveProject}
-              className="mr-2 flex aspect-square cursor-pointer items-center justify-center rounded-full bg-gray-800/10 text-sm text-white outline outline-white/30 hover:bg-gray-800/20"
-            >
-              <svg
-                width="2em"
-                height="2em"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="white"
-                  d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"
-                />
-              </svg>
-            </button>
-          ) : null /* don't show anything if not authenticated */
-        }
+        <button
+          onClick={saveProject}
+          className="mr-2 flex aspect-square cursor-pointer items-center justify-center rounded-full bg-gray-800/10 text-sm text-white outline outline-white/30 hover:bg-gray-800/20"
+        >
+          <svg
+            width="2em"
+            height="2em"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              fill="white"
+              d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"
+            />
+          </svg>
+        </button>
         <button
           className="cursor-pointer rounded bg-gray-800/10 px-4 text-sm text-white outline outline-white/30 hover:bg-gray-800/20"
           onClick={() => {
