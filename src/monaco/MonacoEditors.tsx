@@ -5,6 +5,7 @@ import { MonacoContext } from './MonacoContext';
 import { getExtension, getLanguageForExtension } from './MonacoUtils';
 import { useCallback, useState } from 'react';
 import { useContext, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 const logger = createLogger('MonacoEditors');
 
@@ -187,6 +188,67 @@ export function MonacoEditors({
   // }, [editor, models, monaco, tailwindEnabled]);
 
   const currentModel = editor?.getModel();
+
+  // Load project from URL if id is present
+  // No key needed to load
+  useEffect(() => {
+    if (!monaco || !editor) return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://nan.shoghisimon.ca/?id=${encodeURIComponent(id)}`,
+        );
+        if (!res.ok) throw new Error(res.statusText);
+        const data = (await res.json()) as {
+          files: { filename: string; contents: string }[];
+        };
+        console.log('Fetched data', data);
+        if (!data.files || typeof data.files !== 'object') {
+          throw new Error('Invalid data');
+        }
+        if (!monaco) throw new Error('Monaco not loaded');
+
+        // Remove all existing models except default ones
+        for (const model of models) {
+          if (model.uri.path.endsWith('.d.ts')) continue;
+          if (defaultModels.some(m => m.filename === model.uri.path.substring(1)))
+          removeModel(model);
+          model.dispose();
+        }
+
+        for (const file of data.files) {
+          let { filename } = file;
+          const { contents } = file;
+          filename = filename.replace(/\\/g, '/'); // Replace backslashes with forward slashes
+          filename = filename.replace(/^\//, ''); // Strip leading `/` if present
+          if (!isValidFilename(filename || '')) {
+            logger.warn('Skipping invalid filename', filename);
+            continue;
+          }
+          const extension = getExtension(filename) || '.tsx';
+          const language = getLanguageForExtension(extension);
+          const uri = monaco.Uri.parse(`file:///${filename}`);
+          const existingModel = monaco.editor.getModel(uri);
+          if (existingModel) {
+            existingModel.setValue(contents);
+            continue;
+          }
+          const newModel = monaco.editor.createModel(contents, language, uri);
+          addModel(newModel, editor);
+        }
+        toast.success('Project loaded from URL');
+        logger.debug('Project loaded from URL', data);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error';
+        toast.error(`Failed to load project: ${msg}`);
+        logger.error('Failed to load project from URL', e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monaco, editor]);
 
   return (
     <div className="flex h-full flex-col bg-[#1e1e1e]">

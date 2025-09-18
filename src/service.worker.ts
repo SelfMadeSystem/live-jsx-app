@@ -124,6 +124,16 @@ function dontEverFetch(request: Request) {
 function dontEverCache(request: Request) {
   const url = new URL(request.url);
 
+  // Don't cache WebSocket requests
+  if (url.protocol === 'ws:' || url.protocol === 'wss:') {
+    return true;
+  }
+
+  // Only cache GET requests
+  if (request.method !== 'GET') {
+    return true;
+  }
+
   // We don't want to cache requests that are not http or https
   // Most commonly, this is a data URL or a chrome-extension URL
   return url.protocol !== 'http:' && url.protocol !== 'https:';

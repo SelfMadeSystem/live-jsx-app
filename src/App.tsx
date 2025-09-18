@@ -5,11 +5,12 @@ import { DEFAULT_CSS, DEFAULT_TSX } from './consts';
 import { createLogger } from './logger';
 import { MonacoContext } from './monaco/MonacoContext';
 import { MonacoEditors } from './monaco/MonacoEditors';
+import { useLocalStorage } from './utils';
 import { Hook, Unhook } from 'console-feed';
 import { initialize } from 'esbuild-wasm';
 import esbuildUrl from 'esbuild-wasm/esbuild.wasm?url';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 const logger = createLogger('App');
 
@@ -35,10 +36,54 @@ export default function App() {
   const [right, setRight] = useState(0);
   const [height, setHeight] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [authKey, setAuthKey] = useLocalStorage<string | null>(
+    'live-jsx-app-auth-key',
+    null,
+  );
   const resizeCbRef = useRef<() => void>(() => {});
 
   const [initialized, setInitialized] = useState(esbuildInitialized);
   const rebuildRef = useRef<m.editor.ITextModel[]>([]);
+
+  const saveProject = useCallback(async () => {
+    if (!authKey) {
+      toast.error('You must set an Auth Key to save your project');
+      return;
+    }
+
+    const models = monaco?.editor.getModels() || [];
+    const files: { filename: string; contents: string }[] = [];
+    for (const model of models) {
+      const path = model.uri.path.substring(1);
+      // Don't save .d.ts files
+      if (path.endsWith('.d.ts')) {
+        continue;
+      }
+      files.push({ filename: path, contents: model.getValue() });
+    }
+
+    const result = await fetch('https://nan.shoghisimon.ca/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': authKey,
+      },
+      body: JSON.stringify({ files }),
+    });
+
+    if (!result.ok) {
+      toast.error(`Error saving project: ${result.statusText}`);
+      return;
+    }
+
+    const { id } = await result.json();
+
+    navigator.clipboard.writeText(
+      `https://live-jsx-app.shoghisimon.ca/?id=${id}`,
+    );
+    toast.success('Project saved! URL copied to clipboard.');
+    logger.info('Project saved', id);
+  }, [authKey, monaco?.editor]);
 
   const handleChange = useCallback(
     async (model: m.editor.ITextModel) => {
@@ -290,6 +335,42 @@ export default function App() {
           document.addEventListener('mouseup', onHMouseUp);
         }}
       />
+
+      <div className="fixed right-4 bottom-4 flex h-10">
+        {
+          authKey ? (
+            <button
+              onClick={saveProject}
+              className="mr-2 flex aspect-square cursor-pointer items-center justify-center rounded-full bg-gray-800/10 text-sm text-white outline outline-white/30 hover:bg-gray-800/20"
+            >
+              <svg
+                width="2em"
+                height="2em"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="white"
+                  d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"
+                />
+              </svg>
+            </button>
+          ) : null /* don't show anything if not authenticated */
+        }
+        <button
+          className="cursor-pointer rounded bg-gray-800/10 px-4 text-sm text-white outline outline-white/30 hover:bg-gray-800/20"
+          onClick={() => {
+            const key = prompt(
+              'Enter your Auth Key (you can leave this empty to remove it):',
+            );
+            if (key !== null) {
+              setAuthKey(key?.trim() === '' ? null : key);
+            }
+          }}
+        >
+          {authKey ? 'Change' : 'Set'} Auth Key
+        </button>
+      </div>
     </>
   );
 }
